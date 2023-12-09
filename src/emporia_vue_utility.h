@@ -51,7 +51,10 @@ class EmporiaVueUtility : public Component,  public UARTDevice {
 
         const char *TAG = "Vue";
 
-        struct MeterReading {
+        /**
+         * Format known from MGM Firmware version 2.
+         */
+        struct MeterReadingV2 {
             char header;
             char is_resp;
             char msg_type;
@@ -68,6 +71,24 @@ class EmporiaVueUtility : public Component,  public UARTDevice {
             byte unknown3[88];   // Payload Bytes 60 to 147
             uint32_t timestamp;  // Payload Bytes 148 to 152
         };
+
+        /**
+         * Format known from MGM Firmware version 7.
+         */
+        struct MeterReadingV7 {
+            byte header;
+            byte is_resp;
+            byte msg_type;
+            uint8_t data_len;
+            byte unknown0;      // Payload Byte  0 : Always 0x18
+            byte increment;     // Payload Byte  1 : Increments on each reading and rolls over
+            byte unknown2[5];   // Payload Bytes 2 to 6
+            uint16_t import_wh; // Payload Bytes 7 to 8
+            byte unknown9[8];   // Payload Bytes 9 to 16
+            uint16_t export_wh; // Payload Bytes 17 to 18
+            byte unknown19[21]; // Payload Bytes 19 to 38
+            uint32_t watts;     // Payload Bytes 40 to 43 : Starts with 0x2A, only use the last 24 bits.
+        } __attribute__((packed));
 
         // A Mac Address or install code response
         struct Addr {
@@ -91,7 +112,8 @@ class EmporiaVueUtility : public Component,  public UARTDevice {
 
         union input_buffer {
             byte data[260]; // 4 byte header + 255 bytes payload + 1 byte terminator
-            struct MeterReading mr;
+            struct MeterReadingV2 mr2;
+            struct MeterReadingV7 mr7;
             struct Addr addr;
             struct Ver ver;
         } input_buffer;
@@ -216,7 +238,7 @@ class EmporiaVueUtility : public Component,  public UARTDevice {
 
         // Byte-swap a 32 bit int in the proprietary format
         // used by the MGS111
-        int32_t bswap32(uint32_t in) {
+        int32_t endian_swap(uint32_t in) {
             uint32_t x = 0;
             x += (in & 0x000000FF) << 24;
             x += (in & 0x0000FF00) <<  8;
@@ -229,59 +251,76 @@ class EmporiaVueUtility : public Component,  public UARTDevice {
             int32_t input_value;
             float watt_hours;
             float watts;
-            struct MeterReading *mr;
-            mr = &input_buffer.mr;
+            struct MeterReadingV2 *mr2;
+            mr2 = &input_buffer.mr2;
+            struct MeterReadingV7 *mr7;
+            mr7 = &input_buffer.mr7;
 
-            // Make sure the packet is as long as we expect
-            if (pos < sizeof(struct MeterReading)) {
-                ESP_LOGE(TAG, "Short meter reading packet");
-                last_reading_has_error = 1;
-                return;
-            }
+            if (mgm_firmware_ver < 7) {
+                ESP_LOGD(TAG, "Parsing V2 Payload");
 
-            // Setup Meter Divisor
-            if ((mr->meter_div > 10) || (mr->meter_div < 1)) {
-                ESP_LOGW(TAG, "Unreasonable MeterDiv value %d, ignoring", mr->meter_div);
-                last_reading_has_error = 1;
-                ask_for_bug_report();
-            } else if ((meter_div != 0) && (mr->meter_div != meter_div)) {
-                ESP_LOGW(TAG, "MeterDiv value changed from %d to %d", meter_div, mr->meter_div);
-                last_reading_has_error = 1;
-                meter_div = mr->meter_div;
-            } else {
-                meter_div = mr->meter_div;
-            }
+                // Make sure the packet is as long as we expect
+                if (pos < sizeof(struct MeterReadingV2)) {
+                    ESP_LOGE(TAG, "Short meter reading packet");
+                    last_reading_has_error = 1;
+                    return;
+                }
 
-            // Setup Cost Unit
-            cost_unit = ((mr->cost_unit & 0x00FF) << 8) 
-                      + ((mr->cost_unit & 0xFF00) >> 8); 
+                // Setup Meter Divisor
+                if ((mr2->meter_div > 10) || (mr2->meter_div < 1)) {
+                    ESP_LOGW(TAG, "Unreasonable MeterDiv value %d, ignoring", mr2->meter_div);
+                    last_reading_has_error = 1;
+                    ask_for_bug_report();
+                } else if ((meter_div != 0) && (mr2->meter_div != meter_div)) {
+                    ESP_LOGW(TAG, "MeterDiv value changed from %d to %d", meter_div, mr2->meter_div);
+                    last_reading_has_error = 1;
+                    meter_div = mr2->meter_div;
+                } else {
+                    meter_div = mr2->meter_div;
+                }
 
-            watt_hours = parse_meter_watt_hours(mr);
-            watts      = parse_meter_watts(mr);
-            
-            // Extra debugging of non-zero bytes, only on first packet or if DEBUG_VUE_RESPONSE is true
-            if ((DEBUG_VUE_RESPONSE) || (last_meter_reading == 0)) {
-                ESP_LOGD(TAG, "Meter Divisor: %d", meter_div);
-                ESP_LOGD(TAG, "Meter Cost Unit: %d", cost_unit);
-                ESP_LOGD(TAG, "Meter Flags: %02x %02x", mr->maybe_flags[0], mr->maybe_flags[1]);
-                ESP_LOGD(TAG, "Meter Energy Flags: %02x", (byte)mr->watt_hours);
-                ESP_LOGD(TAG, "Meter Power Flags: %02x", (byte)mr->watts);
-                // Unlike the other values, ms_since_reset is in our native byte order
-                ESP_LOGD(TAG, "Meter Timestamp: %.f", float(mr->timestamp) / 1000.0 );
-                ESP_LOGD(TAG, "Meter Energy: %.3fkWh", watt_hours / 1000.0 );
-                ESP_LOGD(TAG, "Meter Power:  %3.0fW", watts);
+                // Setup Cost Unit
+                cost_unit = ((mr2->cost_unit & 0x00FF) << 8)
+                        + ((mr2->cost_unit & 0xFF00) >> 8);
 
-                for (int x = 1 ; x < pos / 4 ; x++) {
-                    int y = x * 4;
-                    if (       (input_buffer.data[y])
-                            || (input_buffer.data[y+1])
-                            || (input_buffer.data[y+2])
-                            || (input_buffer.data[y+3])) {
-                        ESP_LOGD(TAG, "Meter Response Bytes %3d to %3d: %02x %02x %02x %02x", y-4, y-1,
-                                input_buffer.data[y], input_buffer.data[y+1],
-                                input_buffer.data[y+2], input_buffer.data[y+3]);
+                watt_hours = parse_meter_watt_hours(mr2);
+                watts      = parse_meter_watts_v2(mr2);
+
+                // Extra debugging of non-zero bytes, only on first packet or if DEBUG_VUE_RESPONSE is true
+                if ((DEBUG_VUE_RESPONSE) || (last_meter_reading == 0)) {
+                    ESP_LOGD(TAG, "Meter Divisor: %d", meter_div);
+                    ESP_LOGD(TAG, "Meter Cost Unit: %d", cost_unit);
+                    ESP_LOGD(TAG, "Meter Flags: %02x %02x", mr2->maybe_flags[0], mr2->maybe_flags[1]);
+                    ESP_LOGD(TAG, "Meter Energy Flags: %02x", (byte)mr2->watt_hours);
+                    ESP_LOGD(TAG, "Meter Power Flags: %02x", (byte)mr2->watts);
+                    // Unlike the other values, ms_since_reset is in our native byte order
+                    ESP_LOGD(TAG, "Meter Timestamp: %.f", float(mr2->timestamp) / 1000.0 );
+                    ESP_LOGD(TAG, "Meter Energy: %.3fkWh", watt_hours / 1000.0 );
+                    ESP_LOGD(TAG, "Meter Power:  %3.0fW", watts);
+
+                    for (int x = 1 ; x < pos / 4 ; x++) {
+                        int y = x * 4;
+                        if (       (input_buffer.data[y])
+                                || (input_buffer.data[y+1])
+                                || (input_buffer.data[y+2])
+                                || (input_buffer.data[y+3])) {
+                            ESP_LOGD(TAG, "Meter Response Bytes %3d to %3d: %02x %02x %02x %02x", y-4, y-1,
+                                    input_buffer.data[y], input_buffer.data[y+1],
+                                    input_buffer.data[y+2], input_buffer.data[y+3]);
+                        }
                     }
                 }
+            } else {
+                ESP_LOGD(TAG, "Parsing V7 Payload");
+
+                // Quick validate, look for a magic number.
+                if (input_buffer.data[44] != 0x2A) {
+                    ESP_LOGE(TAG, "Byte 44 was %d instead of %d", input_buffer.data[44], 0x2A);
+                    last_reading_has_error = 1;
+                    return;
+                }
+
+                watts = parse_meter_watts_v7(mr7->watts);
             }
         }
 
@@ -305,7 +344,7 @@ class EmporiaVueUtility : public Component,  public UARTDevice {
             ESP_LOGE(TAG, "EOF");
         }
 
-        float parse_meter_watt_hours(struct MeterReading *mr) {
+        float parse_meter_watt_hours(struct MeterReadingV2 *mr) {
             // Keep the last N watt-hour samples so invalid new samples can be discarded
             static float history[MAX_WH_CHANGE_ARY];
             static uint8_t  history_pos;
@@ -323,7 +362,7 @@ class EmporiaVueUtility : public Component,  public UARTDevice {
             float   history_avg;
             int8_t  x;
 
-            watt_hours_raw = bswap32(mr->watt_hours);
+            watt_hours_raw = endian_swap(mr->watt_hours);
             if (
                       (watt_hours_raw == 4194304) //  "missing data" message (0x00 40 00 00)
                    || (watt_hours_raw == 0)) { 
@@ -392,13 +431,18 @@ class EmporiaVueUtility : public Component,  public UARTDevice {
             return(watt_hours);
         }
 
-        float parse_meter_watts(struct MeterReading *mr) {
+        /*
+         * Read the instant watts value.
+         *
+         * For MGM version 2+?
+         */
+        float parse_meter_watts_v2(struct MeterReadingV2 *mr) {
             int32_t watts_raw;
             float   watts;
 
             // Read the instant watts value
             // (it's actually a 24-bit int)
-            watts_raw = (bswap32(mr->watts) & 0xFFFFFF);
+            watts_raw = (endian_swap(mr->watts) & 0xFFFFFF);
 
             // Bit 1 of the left most byte indicates a negative value
             if (watts_raw & 0x800000) {
@@ -425,6 +469,25 @@ class EmporiaVueUtility : public Component,  public UARTDevice {
 
             if ((watts >= WATTS_MAX) || (watts < WATTS_MIN)) {
                 ESP_LOGE(TAG, "Unreasonable watts value %f", watts);
+                last_reading_has_error = 1;
+            } else {
+                W->publish_state(watts);
+            }
+            return(watts);
+        }
+
+        /*
+         * Read the instant watts value.
+         *
+         * For MGM version 7
+         */
+        float parse_meter_watts_v7(int32_t watts) {
+            // Read the instant watts value
+            // (it's actually a 24-bit int)
+            watts >>= 8;
+
+            if ((watts >= WATTS_MAX) || (watts < WATTS_MIN)) {
+                ESP_LOGE(TAG, "Unreasonable watts value %d", watts);
                 last_reading_has_error = 1;
             } else {
                 W->publish_state(watts);
