@@ -42,5 +42,8 @@ The mac address reponse bytes are in reverse order, if the device responds with 
 #### Install code response payload
 The install code bytes are not swapped like the mac address payload.
 
+#### Meter join response payload
+This always returns a 0x01 value even if the Vue is not in range of the meter.
+
 #### Meter reading response payload
-The meter response payload has it's own page [protocol-meter-reading.md](protocol-meter-reading.md)
+The meter response payload has its own page [protocol-meter-reading.md](protocol-meter-reading.md)

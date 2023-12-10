@@ -236,8 +236,6 @@ class EmporiaVueUtility : public Component,  public UARTDevice {
             return 0;
         }
 
-        // Byte-swap a 32 bit int in the proprietary format
-        // used by the MGS111
         int32_t endian_swap(uint32_t in) {
             uint32_t x = 0;
             x += (in & 0x000000FF) << 24;
@@ -315,7 +313,7 @@ class EmporiaVueUtility : public Component,  public UARTDevice {
 
                 // Quick validate, look for a magic number.
                 if (input_buffer.data[44] != 0x2A) {
-                    ESP_LOGE(TAG, "Byte 44 was %d instead of %d", input_buffer.data[44], 0x2A);
+                    ESP_LOGE(TAG, "Byte 44 was %02x instead of %02x", input_buffer.data[44], 0x2A);
                     last_reading_has_error = 1;
                     return;
                 }
