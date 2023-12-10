@@ -1,6 +1,6 @@
 # Meter Response Payload
 
-There are at least two known response payloads sent by the MGM111 chip. MGM Firmware version 2 sends a 152 byte payload while version 7 sends a 45 byte payload. Check the section below relevant to your version.
+There are at least two known response payloads sent by the MGM111 chip. MGM Firmware version 2 sends a 152 byte payload while version 7 sends a 44 byte payload. Check the section below relevant to your version.
 
 ## Payload for Version 2
 
@@ -86,7 +86,7 @@ Random uneducated guess is that this is a bit field with flags about the meter c
 
 ## Payload for Version 7
 
-The meter reading response contains 45 bytes of payload, most of which seem to always be zeros. The table below details the payload format that's been reversed engineered so far.
+The meter reading response contains 44 bytes of payload, most of which seem to always be zeros. The table below details the payload format that's been reversed engineered so far.
 Blank cells have never been seen to be anything other than zero. Some cells have hex codes that I have never seen change, but might differ for you. Note the table is zero-indexed (starts at byte zero, not byte 1).
 
 <table  style="width:80%">
