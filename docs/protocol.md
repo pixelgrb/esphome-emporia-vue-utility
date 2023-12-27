@@ -11,6 +11,7 @@ Each message sent or received begins with a `$` (hex 24).  Messages end with a c
 | m        |  0x6d  | Get mac address (of the MGM111)|
 | i        |  0x69  | Get install code |
 | f        |  0x66  | Get firmware version |
+| d        |  0x64  | Sent after holding the reset button for 5 seconds |
 
 ## Sending messages
 
@@ -43,7 +44,7 @@ The mac address reponse bytes are in reverse order, if the device responds with 
 The install code bytes are not swapped like the mac address payload.
 
 #### Meter join response payload
-This always returns a 0x01 value even if the Vue is not in range of the meter.
+Seems to return 0x01 even if the Vue is not in range of the meter and seems to return 0x00 before ever being provisioned with the meter. At the least, `1` is good and `0` is bad.
 
 #### Meter reading response payload
 The meter response payload has its own page [protocol-meter-reading.md](protocol-meter-reading.md)

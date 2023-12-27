@@ -25,7 +25,7 @@
 // 10 to 30 seconds, so "5" is usually fine.
 // You might try setting this to "1" to see if your meter has
 // new values more often
-#define METER_READING_INTERVAL 5
+#define METER_READING_INTERVAL 30
 
 // How often to attempt to re-join the meter when it hasn't
 // been returning readings
@@ -86,7 +86,7 @@ class EmporiaVueUtility : public Component,  public UARTDevice {
             uint16_t import_wh; // Payload Bytes 7 to 8
             byte unknown9[8];   // Payload Bytes 9 to 16
             uint16_t export_wh; // Payload Bytes 17 to 18
-            byte unknown19[21]; // Payload Bytes 19 to 38
+            byte unknown19[21]; // Payload Bytes 19 to 39
             uint32_t watts;     // Payload Bytes 40 to 43 : Starts with 0x2A, only use the last 24 bits.
         } __attribute__((packed));
 
@@ -495,6 +495,10 @@ class EmporiaVueUtility : public Component,  public UARTDevice {
 
         void handle_resp_meter_join() {
             ESP_LOGD(TAG, "Got meter join response");
+            // Reusing Ver struct because both have a single byte payload value.
+            struct Ver *ver;
+            ver = &input_buffer.ver;
+            ESP_LOGI(TAG, "Join response value: %d", ver->value);
         }
 
         int handle_resp_mac_address() {
