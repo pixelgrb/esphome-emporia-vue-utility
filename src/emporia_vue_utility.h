@@ -73,7 +73,7 @@ class EmporiaVueUtility : public Component,  public UARTDevice {
         };
 
         /**
-         * Format known from MGM Firmware version 7.
+         * Format known from MGM Firmware version 7 and 8.
          */
         struct MeterReadingV7 {
             byte header;
@@ -83,10 +83,10 @@ class EmporiaVueUtility : public Component,  public UARTDevice {
             byte unknown0;      // Payload Byte  0 : Always 0x18
             byte increment;     // Payload Byte  1 : Increments on each reading and rolls over
             byte unknown2[5];   // Payload Bytes 2 to 6
-            uint16_t import_wh; // Payload Bytes 7 to 8
-            byte unknown9[8];   // Payload Bytes 9 to 16
-            uint16_t export_wh; // Payload Bytes 17 to 18
-            byte unknown19[21]; // Payload Bytes 19 to 39
+            uint32_t import_wh; // Payload Bytes 7 to 10
+            byte unknown11[6];  // Payload Bytes 11 to 16
+            uint32_t export_wh; // Payload Bytes 17 to 20
+            byte unknown21[19]; // Payload Bytes 21 to 39
             uint32_t watts;     // Payload Bytes 40 to 43 : Starts with 0x2A, only use the last 24 bits.
         } __attribute__((packed));
 
@@ -309,7 +309,7 @@ class EmporiaVueUtility : public Component,  public UARTDevice {
                     }
                 }
             } else {
-                ESP_LOGD(TAG, "Parsing V7 Payload");
+                ESP_LOGD(TAG, "Parsing V7+ Payload");
 
                 // Quick validate, look for a magic number.
                 if (input_buffer.data[44] != 0x2A) {
@@ -494,7 +494,7 @@ class EmporiaVueUtility : public Component,  public UARTDevice {
         }
 
         void handle_resp_meter_join() {
-            ESP_LOGD(TAG, "Got meter join response");
+            // ESP_LOGD(TAG, "Got meter join response");
             // Reusing Ver struct because both have a single byte payload value.
             struct Ver *ver;
             ver = &input_buffer.ver;
@@ -502,7 +502,7 @@ class EmporiaVueUtility : public Component,  public UARTDevice {
         }
 
         int handle_resp_mac_address() {
-            ESP_LOGD(TAG, "Got mac addr response");
+            // ESP_LOGD(TAG, "Got mac addr response");
             struct Addr *mac;
             mac = &input_buffer.addr;
 
@@ -520,7 +520,7 @@ class EmporiaVueUtility : public Component,  public UARTDevice {
         }
 
         int handle_resp_install_code() {
-            ESP_LOGD(TAG, "Got install code response");
+            // ESP_LOGD(TAG, "Got install code response");
             struct Addr *code;
             code = &input_buffer.addr;
 
@@ -674,6 +674,10 @@ class EmporiaVueUtility : public Component,  public UARTDevice {
                                 next_meter_request = now + METER_READING_INTERVAL;
                             }
                         }
+                        break;
+                    case 'e':
+                        // Unknown response type, but we can ignore.
+                        ESP_LOGI(TAG, "Got 'e'-type message with value: %d", input_buffer.data[4]);
                         break;
                     default:
                         ESP_LOGE(TAG, "Unhandled response type '%c'", msg_type);

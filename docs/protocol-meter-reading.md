@@ -98,10 +98,10 @@ Blank cells have never been seen to be anything other than zero. Some cells have
   </tr>
   <tr>   <th>0</th> <td colspan=1 align="center">0x18</td><td colspan=1 align="center">Incrementor</td><td colspan=1 align="center">0x01</td><td colspan=1></tr>
   <tr>   <th>4</th> <td colspan=2></td><td colspan=1 align="center">0x25</td><td colspan=1 align="center">ImportWh~</td></tr>
-  <tr>   <th>8</th> <td colspan=1 align="center">~ImportWh</td><td colspan=1 align="center">0x16</td><td colspan=1 align="center">0x09</td><td colspan=1></td></tr>
+  <tr>   <th>8</th> <td colspan=3 align="center">~ImportWh</td><td colspan=1></td></tr>
   <tr>   <th>12</th> <td colspan=1></td><td colspan=1 align="center">0x01</td><td colspan=2></td></tr>
-  <tr>   <th>16</th> <td colspan=1></td><td colspan=2 align="center">ExportWh</td><td colspan=1 align="center">0x97</td></tr>
-  <tr>   <th>20</th> <td colspan=3></td><td colspan=1 align="center">0x01</td></tr>
+  <tr>   <th>16</th> <td colspan=1></td><td colspan=3 align="center">ExportWh~</td></tr>
+  <tr>   <th>20</th> <td colspan=1 align="center">~ExportWh</td><td colspan=2></td><td colspan=1 align="center">0x01</td></tr>
   <tr>   <th>24</th> <td colspan=1 align="center">0x03</td><td colspan=1></td><td colspan=1 align="center">0x22</td><td colspan=1 align="center">0x01</td></tr>
   <tr>   <th>28</th> <td colspan=2></td><td colspan=1 align="center">0x02</td><td colspan=1 align="center">0x03</td></tr>
   <tr>   <th>32</th> <td colspan=1></td><td colspan=1 align="center">0x22</td><td colspan=1 align="center">0xE8</td><td colspan=1 align="center">0x03</td></tr>
@@ -113,13 +113,13 @@ Blank cells have never been seen to be anything other than zero. Some cells have
 
 #### ImportWh
 
-Bytes 7 to 8, (16 bit int, probably unsigned, LSB)
+Bytes 7 to 10, (32 bit int, probably unsigned, LSB)
 
 Cumulative watt-hours consumed from the grid. Unknown when the value resets, but probably never resets since ESP32 never sends a clock sync to the MGM111 so it likely just rolls over.
 
 #### ExportWh
 
-Bytes 17 to 18, (16 bit int, probably unsigned, LSB)
+Bytes 17 to 20, (32 bit int, probably unsigned, LSB)
 
 Cumulative watt-hours sent to the grid. Unknown when the value resets, but probably never resets since ESP32 never sends a clock sync to the MGM111 so it likely just rolls over.
 

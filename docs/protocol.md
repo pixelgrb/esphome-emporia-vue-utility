@@ -11,7 +11,8 @@ Each message sent or received begins with a `$` (hex 24).  Messages end with a c
 | m        |  0x6d  | Get mac address (of the MGM111)|
 | i        |  0x69  | Get install code |
 | f        |  0x66  | Get firmware version |
-| d        |  0x64  | Sent after holding the reset button for 5 seconds |
+| d        |  0x64  | Reset - Sent from the ESP32 after holding the reset button for 5 seconds |
+| e        |  0x65  | Unknown - Occasionally sent from the MGM111 with the V8 firmware |
 
 ## Sending messages
 
@@ -48,3 +49,6 @@ Seems to return 0x01 even if the Vue is not in range of the meter and seems to r
 
 #### Meter reading response payload
 The meter response payload has its own page [protocol-meter-reading.md](protocol-meter-reading.md)
+
+#### Unknown 0x65 type
+Occasionally sent by the MGM111 with a 1 byte payload that has a value from 0 to 2. No discernible pattern.
