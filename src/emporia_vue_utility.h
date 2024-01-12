@@ -439,7 +439,9 @@ class EmporiaVueUtility : public Component,  public UARTDevice {
 
             consumed = mr->import_wh;
             if (consumed == 4194304) {
-                //  "missing data" message (0x00 40 00 00)
+                // "missing data" message (0x00 40 00 00)
+                // I have not seen this message but am making the
+                // assumption that it is still relevant to V7+.
                 ESP_LOGI(TAG, "Import watt-hour value missing");
                 last_reading_has_error = 1;
                 return(0);
@@ -447,7 +449,9 @@ class EmporiaVueUtility : public Component,  public UARTDevice {
 
             returned = mr->export_wh;
             if (returned == 4194304) {
-                //  "missing data" message (0x00 40 00 00)
+                // "missing data" message (0x00 40 00 00)
+                // I have not seen this message but am making the
+                // assumption that it is still relevant to V7+.
                 ESP_LOGI(TAG, "Export watt-hour value missing");
                 last_reading_has_error = 1;
                 return(0);
