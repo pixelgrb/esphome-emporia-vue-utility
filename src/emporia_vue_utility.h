@@ -281,7 +281,7 @@ class EmporiaVueUtility : public Component,  public UARTDevice {
                 cost_unit = ((mr2->cost_unit & 0x00FF) << 8)
                         + ((mr2->cost_unit & 0xFF00) >> 8);
 
-                watt_hours = parse_meter_watt_hours(mr2);
+                watt_hours = parse_meter_watt_hours_v2(mr2);
                 watts      = parse_meter_watts_v2(mr2);
 
                 // Extra debugging of non-zero bytes, only on first packet or if DEBUG_VUE_RESPONSE is true
@@ -319,6 +319,7 @@ class EmporiaVueUtility : public Component,  public UARTDevice {
                 }
 
                 watts = parse_meter_watts_v7(mr7->watts);
+                watt_hours = parse_meter_watt_hours_v7(mr7);
             }
         }
 
@@ -342,7 +343,7 @@ class EmporiaVueUtility : public Component,  public UARTDevice {
             ESP_LOGE(TAG, "EOF");
         }
 
-        float parse_meter_watt_hours(struct MeterReadingV2 *mr) {
+        float parse_meter_watt_hours_v2(struct MeterReadingV2 *mr) {
             // Keep the last N watt-hour samples so invalid new samples can be discarded
             static float history[MAX_WH_CHANGE_ARY];
             static uint8_t  history_pos;
@@ -427,6 +428,46 @@ class EmporiaVueUtility : public Component,  public UARTDevice {
             kWh_net->publish_state(watt_hours / 1000.0);
 
             return(watt_hours);
+        }
+
+        float parse_meter_watt_hours_v7(struct MeterReadingV7 *mr) {
+            uint32_t consumed;
+            uint32_t returned;
+            static uint32_t prev_consumed;
+            static uint32_t prev_returned;
+            uint32_t net = 0;
+
+            consumed = mr->import_wh;
+            if (consumed == 4194304) {
+                //  "missing data" message (0x00 40 00 00)
+                ESP_LOGI(TAG, "Import watt-hour value missing");
+                last_reading_has_error = 1;
+                return(0);
+            }
+
+            returned = mr->export_wh;
+            if (returned == 4194304) {
+                //  "missing data" message (0x00 40 00 00)
+                ESP_LOGI(TAG, "Export watt-hour value missing");
+                last_reading_has_error = 1;
+                return(0);
+            }
+
+            kWh_consumed->publish_state(float(consumed) / 1000.0);
+            kWh_returned->publish_state(float(returned) / 1000.0);
+
+            // Calculate watt-hour change from the previous reading.
+            if (prev_consumed > 0 || prev_returned > 0) {
+                // Initialized
+                uint32_t consumed_diff = consumed - prev_consumed;
+                uint32_t returned_diff = returned - prev_returned;
+                net = consumed_diff - returned_diff;
+                kWh_net->publish_state(float(net) / 1000.0);
+            }
+            prev_consumed = consumed;
+            prev_returned = returned;
+
+            return(net);
         }
 
         /*
