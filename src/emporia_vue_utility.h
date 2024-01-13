@@ -435,7 +435,7 @@ class EmporiaVueUtility : public Component,  public UARTDevice {
             uint32_t returned;
             static uint32_t prev_consumed;
             static uint32_t prev_returned;
-            uint32_t net = 0;
+            int32_t net = 0;
 
             consumed = mr->import_wh;
             if (consumed == 4194304) {
@@ -465,7 +465,7 @@ class EmporiaVueUtility : public Component,  public UARTDevice {
                 // Initialized
                 uint32_t consumed_diff = consumed - prev_consumed;
                 uint32_t returned_diff = returned - prev_returned;
-                net = consumed_diff - returned_diff;
+                net = int32_t(consumed_diff) - int32_t(returned_diff);
                 kWh_net->publish_state(float(net) / 1000.0);
             }
             prev_consumed = consumed;
@@ -522,7 +522,7 @@ class EmporiaVueUtility : public Component,  public UARTDevice {
         /*
          * Read the instant watts value.
          *
-         * For MGM version 7
+         * For MGM version 7 and 8
          */
         float parse_meter_watts_v7(int32_t watts) {
             // Read the instant watts value
@@ -730,6 +730,12 @@ class EmporiaVueUtility : public Component,  public UARTDevice {
                         break;
                 }
                 pos = 0;
+            }
+
+            if (mgm_firmware_ver < 1) {
+                // Something's wrong, do the startup sequence again.
+                startup_step = 0;
+                send_version_req();
             }
 
             if (now >= next_meter_request) {
