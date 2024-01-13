@@ -43,13 +43,20 @@
 
 class EmporiaVueUtility : public Component,  public UARTDevice {
     public:
-        EmporiaVueUtility(UARTComponent *parent): UARTDevice(parent) {}
+        EmporiaVueUtility(
+            UARTComponent *parent,
+            uint8_t interval_seconds = METER_READING_INTERVAL):
+                UARTDevice(parent), meter_reading_interval(interval_seconds) {}
         Sensor *kWh_net      = new Sensor();
         Sensor *kWh_consumed = new Sensor();
         Sensor *kWh_returned = new Sensor();
+        Sensor *Wh_net      = new Sensor();
+        Sensor *Wh_consumed = new Sensor();
+        Sensor *Wh_returned = new Sensor();
         Sensor *W       = new Sensor();
 
         const char *TAG = "Vue";
+        const uint8_t meter_reading_interval;
 
         /**
          * Format known from MGM Firmware version 2.
@@ -457,6 +464,8 @@ class EmporiaVueUtility : public Component,  public UARTDevice {
                 return(0);
             }
 
+            Wh_consumed->publish_state(float(consumed));
+            Wh_returned->publish_state(float(returned));
             kWh_consumed->publish_state(float(consumed) / 1000.0);
             kWh_returned->publish_state(float(returned) / 1000.0);
 
@@ -466,6 +475,7 @@ class EmporiaVueUtility : public Component,  public UARTDevice {
                 uint32_t consumed_diff = consumed - prev_consumed;
                 uint32_t returned_diff = returned - prev_returned;
                 net = int32_t(consumed_diff) - int32_t(returned_diff);
+                Wh_net->publish_state(float(net));
                 kWh_net->publish_state(float(net) / 1000.0);
             }
             prev_consumed = consumed;
@@ -673,6 +683,12 @@ class EmporiaVueUtility : public Component,  public UARTDevice {
                 switch (msg_type) {
                     case 'r': // Meter reading
                         led_link(true);
+                        if (now < last_meter_reading + int(meter_reading_interval / 4)) {
+                            // Sometimes a duplicate message is sent in quick succession.
+                            // Ignoring the duplicate.
+                            ESP_LOGD(TAG, "Got extra message %ds after the previous message.", now - last_meter_reading);
+                            break;
+                        }
                         last_reading_has_error = 0;
                         handle_resp_meter_reading();
                         if (last_reading_has_error) {
@@ -682,7 +698,7 @@ class EmporiaVueUtility : public Component,  public UARTDevice {
                             next_meter_join = now + METER_REJOIN_INTERVAL;
                         }
                         break;
-                    case 'j': // Meter reading
+                    case 'j': // Meter join
                         handle_resp_meter_join();
                         led_wifi(true);
                         if (startup_step == 3) {
@@ -696,7 +712,7 @@ class EmporiaVueUtility : public Component,  public UARTDevice {
                             if (startup_step == 0) {
                                 startup_step++;
                                 send_mac_req();
-                                next_meter_request = now + METER_READING_INTERVAL;
+                                next_meter_request = now + meter_reading_interval;
                             }
                         }
                         break;
@@ -706,7 +722,7 @@ class EmporiaVueUtility : public Component,  public UARTDevice {
                             if (startup_step == 1) {
                                 startup_step++;
                                 send_install_code_req();
-                                next_meter_request = now + METER_READING_INTERVAL;
+                                next_meter_request = now + meter_reading_interval;
                             }
                         }
                         break;
@@ -716,7 +732,7 @@ class EmporiaVueUtility : public Component,  public UARTDevice {
                             if (startup_step == 2) {
                                 startup_step++;
                                 send_meter_request();
-                                next_meter_request = now + METER_READING_INTERVAL;
+                                next_meter_request = now + meter_reading_interval;
                             }
                         }
                         break;
@@ -748,7 +764,7 @@ class EmporiaVueUtility : public Component,  public UARTDevice {
                 }
 
                 // Schedule the next MGM message
-                next_meter_request = now + METER_READING_INTERVAL;
+                next_meter_request = now + meter_reading_interval;
 
                 if (now > next_meter_join) {
                     startup_step = 9; // Cancel startup messages
