@@ -14,7 +14,7 @@
 
 // How much the watt-hours consumed value can change between samples.
 // Values that change by more than this over the avg value across the
-// previous 5 samples will be discarded.  
+// previous 5 samples will be discarded.
 #define MAX_WH_CHANGE 2000
 
 // How many samples to average the watt-hours value over. 
@@ -430,6 +430,9 @@ class EmporiaVueUtility : public Component,  public UARTDevice {
                 }
             }
 
+            Wh_consumed->publish_state(float(consumed));
+            Wh_returned->publish_state(float(returned));
+            Wh_net->publish_state(watt_hours);
             kWh_consumed->publish_state(float(consumed) / 1000.0);
             kWh_returned->publish_state(float(returned) / 1000.0);
             kWh_net->publish_state(watt_hours / 1000.0);
@@ -445,22 +448,30 @@ class EmporiaVueUtility : public Component,  public UARTDevice {
             int32_t net = 0;
 
             consumed = mr->import_wh;
-            if (consumed == 4194304) {
-                // "missing data" message (0x00 40 00 00)
-                // I have not seen this message but am making the
-                // assumption that it is still relevant to V7+.
-                ESP_LOGI(TAG, "Import watt-hour value missing");
-                last_reading_has_error = 1;
-                return(0);
-            }
-
             returned = mr->export_wh;
-            if (returned == 4194304) {
-                // "missing data" message (0x00 40 00 00)
-                // I have not seen this message but am making the
-                // assumption that it is still relevant to V7+.
-                ESP_LOGI(TAG, "Export watt-hour value missing");
-                last_reading_has_error = 1;
+            int32_t consumed_diff = int32_t(consumed) - int32_t(prev_consumed);
+            int32_t returned_diff = int32_t(returned) - int32_t(prev_returned);
+
+            // Sometimes the reported value is far larger than it should be. Let's ignore it.
+            if (std::abs(consumed_diff) > MAX_WH_CHANGE || std::abs(returned_diff) > MAX_WH_CHANGE) {
+                ESP_LOGW(TAG, "Reported watt-hour change is too large vs previous reading. Skipping.");
+                // The `prev_consumed` and `prev_returned` will still be given the current reading
+                // even if the value is erroneous.
+                //
+                // This approach should handle two scenarios:
+                // 1) Some sort of outage causes a long gap between the previous reading (or is 0 after
+                // a reboot) and the current reading. In this case, the difference from the previous
+                // reading can be "too" large, but actually be expected.
+                // 2) I have seen erroneous blips of a single sample with a value that is way too big.
+                //
+                // The code handles scenario #1 by ignoring the current reading but then continuing on
+                // as normal after.
+                // The code handles scenario #2 by ignoring the current reading, then ignoring the
+                // followup reading, then continuing on as normal.
+                //
+                // At worst, two consecutive samples will be ignored.
+                prev_consumed = consumed;
+                prev_returned = returned;
                 return(0);
             }
 
@@ -472,9 +483,7 @@ class EmporiaVueUtility : public Component,  public UARTDevice {
             // Calculate watt-hour change from the previous reading.
             if (prev_consumed > 0 || prev_returned > 0) {
                 // Initialized
-                uint32_t consumed_diff = consumed - prev_consumed;
-                uint32_t returned_diff = returned - prev_returned;
-                net = int32_t(consumed_diff) - int32_t(returned_diff);
+                net = consumed_diff - returned_diff;
                 Wh_net->publish_state(float(net));
                 kWh_net->publish_state(float(net) / 1000.0);
             }
@@ -487,7 +496,7 @@ class EmporiaVueUtility : public Component,  public UARTDevice {
         /*
          * Read the instant watts value.
          *
-         * For MGM version 2+?
+         * For MGM version 2 (to 6?)
          */
         float parse_meter_watts_v2(struct MeterReadingV2 *mr) {
             int32_t watts_raw;
