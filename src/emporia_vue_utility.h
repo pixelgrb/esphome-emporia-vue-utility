@@ -480,13 +480,10 @@ class EmporiaVueUtility : public Component,  public UARTDevice {
             kWh_consumed->publish_state(float(consumed) / 1000.0);
             kWh_returned->publish_state(float(returned) / 1000.0);
 
-            // Calculate watt-hour change from the previous reading.
-            if (prev_consumed > 0 || prev_returned > 0) {
-                // Initialized
-                net = consumed_diff - returned_diff;
-                Wh_net->publish_state(float(net));
-                kWh_net->publish_state(float(net) / 1000.0);
-            }
+            net = consumed - returned;
+            Wh_net->publish_state(float(net));
+            kWh_net->publish_state(float(net) / 1000.0);
+
             prev_consumed = consumed;
             prev_returned = returned;
 
