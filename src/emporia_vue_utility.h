@@ -333,8 +333,8 @@ class EmporiaVueUtility : public Component,  public UARTDevice {
         }
 
         void ask_for_bug_report() {
-            ESP_LOGE(TAG, "If you continue to see this, please file a bug at");
-            ESP_LOGE(TAG, "  https://forms.gle/duMdU2i7wWHdbK5TA");
+            ESP_LOGE(TAG, "If you continue to see this, try asking for help at");
+            ESP_LOGE(TAG, "  https://community.home-assistant.io/t/emporia-vue-utility-connect/378347");
             ESP_LOGE(TAG, "and include a few lines above this message and the data below until \"EOF\":");
             ESP_LOGE(TAG, "Full packet:");
             for (int x = 1 ; x < pos / 4 ; x++) {
