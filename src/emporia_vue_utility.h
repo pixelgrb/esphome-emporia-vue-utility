@@ -50,10 +50,12 @@ class EmporiaVueUtility : public Component,  public UARTDevice {
         Sensor *kWh_net      = new Sensor();
         Sensor *kWh_consumed = new Sensor();
         Sensor *kWh_returned = new Sensor();
-        Sensor *Wh_net      = new Sensor();
-        Sensor *Wh_consumed = new Sensor();
-        Sensor *Wh_returned = new Sensor();
-        Sensor *W       = new Sensor();
+        Sensor *Wh_net       = new Sensor();
+        Sensor *Wh_consumed  = new Sensor();
+        Sensor *Wh_returned  = new Sensor();
+        Sensor *W            = new Sensor();
+        Sensor *W_consumed   = new Sensor();
+        Sensor *W_returned   = new Sensor();
 
         const char *TAG = "Vue";
         const uint8_t meter_reading_interval;
@@ -531,6 +533,13 @@ class EmporiaVueUtility : public Component,  public UARTDevice {
                 last_reading_has_error = 1;
             } else {
                 W->publish_state(watts);
+                if (watts > 0) {
+                  W_consumed->publish_state(watts);
+                  W_returned->publish_state(0);
+                } else {
+                  W_consumed->publish_state(0);
+                  W_returned->publish_state(-watts);
+                }
             }
             return(watts);
         }
@@ -550,6 +559,13 @@ class EmporiaVueUtility : public Component,  public UARTDevice {
                 last_reading_has_error = 1;
             } else {
                 W->publish_state(watts);
+                if (watts > 0) {
+                  W_consumed->publish_state(watts);
+                  W_returned->publish_state(0);
+                } else {
+                  W_consumed->publish_state(0);
+                  W_returned->publish_state(-watts);
+                }
             }
             return(watts);
         }
@@ -601,7 +617,7 @@ class EmporiaVueUtility : public Component,  public UARTDevice {
         int handle_resp_firmware_ver() {
             struct Ver *ver;
             ver = &input_buffer.ver;
-           
+
             mgm_firmware_ver = ver->value;
 
             ESP_LOGI(TAG, "MGM Firmware Version: %d", mgm_firmware_ver);
@@ -682,6 +698,19 @@ class EmporiaVueUtility : public Component,  public UARTDevice {
 
             msg_len = read_msg();
             now = ::time(&now);
+
+            /* sanity checks! */
+            if (next_meter_request >
+                now + (INITIAL_STARTUP_DELAY + METER_REJOIN_INTERVAL)) {
+              ESP_LOGD(TAG,
+                       "Time jumped back (%lld > %lld + %lld); resetting",
+                       (long long) next_meter_request,
+                       (long long) now,
+                       (long long) (INITIAL_STARTUP_DELAY +
+                                    METER_REJOIN_INTERVAL));
+              next_meter_request = next_meter_join = 0;
+            }
+
             if (msg_len != 0) {
 
                 msg_type = input_buffer.data[2];
@@ -761,9 +790,8 @@ class EmporiaVueUtility : public Component,  public UARTDevice {
             }
 
             if (now >= next_meter_request) {
-
-                // Handle initial startup delay 
-                if (next_meter_request == 0) {                    
+                // Handle initial startup delay
+                if (next_meter_request == 0) {
                     next_meter_request = now + INITIAL_STARTUP_DELAY;
                     next_meter_join    = next_meter_request + METER_REJOIN_INTERVAL;
                     return;
@@ -778,13 +806,12 @@ class EmporiaVueUtility : public Component,  public UARTDevice {
                     next_meter_join = now + METER_REJOIN_INTERVAL;
                     return;
                 }
-               
+
                 if      (startup_step == 0) send_version_req();
                 else if (startup_step == 1) send_mac_req();
                 else if (startup_step == 2) send_install_code_req();
                 else if (startup_step == 3) send_meter_join();
                 else                        send_meter_request();
-                
             }
         }
 };
