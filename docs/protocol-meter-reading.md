@@ -100,13 +100,13 @@ Blank cells have never been seen to be anything other than zero. Some cells have
   <tr>   <th>4</th> <td colspan=2></td><td colspan=1 align="center">0x25</td><td colspan=1 align="center">ImportWh~</td></tr>
   <tr>   <th>8</th> <td colspan=3 align="center">~ImportWh</td><td colspan=1></td></tr>
   <tr>   <th>12</th> <td colspan=1></td><td colspan=1 align="center">0x01</td><td colspan=2></td></tr>
-  <tr>   <th>16</th> <td colspan=1></td><td colspan=3 align="center">ExportWh~</td></tr>
+  <tr>   <th>16</th> <td colspan=1 align="center">0x25</td><td colspan=3 align="center">ExportWh~</td></tr>
   <tr>   <th>20</th> <td colspan=1 align="center">~ExportWh</td><td colspan=2></td><td colspan=1 align="center">0x01</td></tr>
   <tr>   <th>24</th> <td colspan=1 align="center">0x03</td><td colspan=1></td><td colspan=1 align="center">0x22</td><td colspan=1 align="center">0x01</td></tr>
   <tr>   <th>28</th> <td colspan=2></td><td colspan=1 align="center">0x02</td><td colspan=1 align="center">0x03</td></tr>
   <tr>   <th>32</th> <td colspan=1></td><td colspan=1 align="center">0x22</td><td colspan=1 align="center">0xE8</td><td colspan=1 align="center">0x03</td></tr>
   <tr>   <th>36</th> <td colspan=1></td><td colspan=1></td><td colspan=1 align="center">0x04</td><td colspan=1></td></tr>
-  <tr>   <th>40</th> <td colspan=1></td><td colspan=3 align="center">PowerVal</td></tr>
+  <tr>   <th>40</th> <td colspan=1 align="center">0x2A</td><td colspan=3 align="center">PowerVal</td></tr>
 </table>
 
 ### Known Fields
