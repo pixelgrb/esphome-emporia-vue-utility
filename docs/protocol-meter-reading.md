@@ -104,7 +104,7 @@ Blank cells have never been seen to be anything other than zero. Some cells have
   <tr>   <th>20</th> <td colspan=1 align="center">~ExportWh</td><td colspan=2></td><td colspan=1 align="center">0x01</td></tr>
   <tr>   <th>24</th> <td colspan=1 align="center">0x03</td><td colspan=1></td><td colspan=1 align="center">0x22</td><td colspan=1 align="center">0x01</td></tr>
   <tr>   <th>28</th> <td colspan=2></td><td colspan=1 align="center">0x02</td><td colspan=1 align="center">0x03</td></tr>
-  <tr>   <th>32</th> <td colspan=1></td><td colspan=1 align="center">0x22</td><td colspan=1 align="center">0xE8</td><td colspan=1 align="center">0x03</td></tr>
+  <tr>   <th>32</th> <td colspan=1></td><td colspan=1 align="center">0x22</td><td colspan=2 align="center">EnergyCostUnit</td></tr>
   <tr>   <th>36</th> <td colspan=1></td><td colspan=1></td><td colspan=1 align="center">0x04</td><td colspan=1></td></tr>
   <tr>   <th>40</th> <td colspan=1 align="center">0x2A</td><td colspan=3 align="center">PowerVal</td></tr>
 </table>
@@ -128,6 +128,15 @@ Cumulative watt-hours sent to the grid. Unknown when the value resets, but proba
 Bytes 41 and 43 (24 bit signed int, LSB)
 
 The power being sent or consumed at this moment. This is in watts for me but I know in the V2 payload that there is a `MeterDiv`, which means `PowerVal` might be a multiplication of the real wattage. If V7 also has this behavior then `MeterDiv` must have a value of 1 in my readings. So, `MeterDiv` might be byte 2, 13, 23, or 27.
+
+#### EnergyCostUnit(?)
+
+Bytes 34 and 35 LSB
+
+Usually `0xE803`, which is `0x03E8` = `1000`. Continuing the V2 theorization that this is the number of watt-hour units per "cost unit".
+Since people are typically charged per kWh, this value is typically 1000.
+
+This value is not currently used in the code.
 
 #### Incrementor
 
