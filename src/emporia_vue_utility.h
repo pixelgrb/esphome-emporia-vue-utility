@@ -120,7 +120,7 @@ class EmporiaVueUtility : public Component,  public UARTDevice {
         };
 
         union input_buffer {
-            byte data[260]; // 4 byte header + 255 bytes payload + 1 byte terminator
+            byte data[260]; // V2 4 byte header + 255 bytes payload + 1 byte terminator
             struct MeterReadingV2 mr2;
             struct MeterReadingV7 mr7;
             struct Addr addr;
@@ -138,7 +138,7 @@ class EmporiaVueUtility : public Component,  public UARTDevice {
         bool last_reading_has_error;
         time_t now;
 
-        // The most recent meter divisor, meter reading payload byte 47
+        // The most recent meter divisor, meter reading payload V2 byte 47
         uint8_t meter_div = 0;
 
         // The most recent cost unit
@@ -641,8 +641,11 @@ class EmporiaVueUtility : public Component,  public UARTDevice {
             ESP_LOGI(TAG, "contact your utililty and ask them to reprovision the device.");
             ESP_LOGI(TAG, "Also confirm that the above mac address & install code match");
             ESP_LOGI(TAG, "what is printed on your device.");
-            ESP_LOGE(TAG, "You can also file a bug at");
-            ESP_LOGE(TAG, "  https://forms.gle/duMdU2i7wWHdbK5TA");
+            ESP_LOGE(TAG, "You can also try asking for help at");
+            ESP_LOGE(TAG,
+                    "  "
+                    "https://community.home-assistant.io/t/"
+                    "emporia-vue-utility-connect/378347");
             write_array(msg, sizeof(msg));
             led_wifi(false);
         }
