@@ -50,5 +50,5 @@ Seems to return 0x01 even if the Vue is not in range of the meter and seems to r
 #### Meter reading response payload
 The meter response payload has its own page [protocol-meter-reading.md](protocol-meter-reading.md)
 
-#### Unknown 0x65 type
-Occasionally sent by the MGM111 with a 1 byte payload that has a value from 0 to 2. No discernible pattern.
+#### Error response payload
+Payload is seen to have a value from `0` to `2`, but the meaning of the values is unknown. It seems to happen when the device has issue communicating with the meter. If you get this type of message, move the device closer to the meter.
