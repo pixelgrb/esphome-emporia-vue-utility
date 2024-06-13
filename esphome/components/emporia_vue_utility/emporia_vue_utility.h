@@ -1,9 +1,10 @@
 #pragma once
 
+#include <Arduino.h>
+
 #include "esphome/components/sensor/sensor.h"
 #include "esphome/components/uart/uart.h"
 #include "esphome/core/component.h"
-#include <Arduino.h>
 
 // If the instant watts being consumed meter reading is outside of these ranges,
 // the sample will be ignored which helps prevent garbage data from polluting

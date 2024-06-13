@@ -101,8 +101,12 @@ void EmporiaVueUtility::loop() {
         }
         break;
       case 'e':
-        // Unknown response type, but we can ignore.
-        ESP_LOGI(TAG, "Got 'e'-type message with value: %d",
+        // Sometimes happens when the device is farther away from the meter.
+        // Don't know what the value means. It is probably associated with an
+        // enum that Emporia defined.
+        ESP_LOGI(TAG,
+                 "Got error message (with value '%d'). Move me closer to the "
+                 "meter for better reception.",
                  input_buffer.data[4]);
         break;
       default:
