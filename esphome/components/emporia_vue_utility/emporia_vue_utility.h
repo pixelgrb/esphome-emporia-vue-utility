@@ -82,7 +82,9 @@ class EmporiaVueUtility : public PollingComponent, public uart::UARTDevice {
     uint32_t import_wh;  // Payload Bytes 7 to 10
     byte unknown11[6];   // Payload Bytes 11 to 16
     uint32_t export_wh;  // Payload Bytes 17 to 20
-    byte unknown21[13];  // Payload Bytes 21 to 33
+    byte unknown21[6];   // Payload Bytes 21 to 26
+    uint8_t meter_div;   // Payload Byte  27
+    byte unknown28[6];   // Payload Bytes 28 to 33
     uint16_t cost_unit;  // Payload Bytes 34 to 35
     byte unknown36[4];   // Payload Bytes 36 to 39
     uint32_t watts;  // Payload Bytes 40 to 43 : Starts with 0x2A, only use the
@@ -351,13 +353,14 @@ class EmporiaVueUtility : public PollingComponent, public uart::UARTDevice {
       }
 
       cost_unit = mr7->cost_unit;
-      watts = parse_meter_watts_v7(mr7->watts);
+      watts = parse_meter_watts_v7(mr7);
       watt_hours = parse_meter_watt_hours_v7(mr7);
 
       // Extra debugging of non-zero bytes, only on first packet or if
       // debug_ is true
       if ((debug_) || (last_meter_reading == 0)) {
         ESP_LOGD(TAG, "Meter Cost Unit: %d", cost_unit);
+        ESP_LOGD(TAG, "Meter Divisor: %d", mr7->meter_div);
         ESP_LOGD(TAG, "Meter Energy Import Flags: %08x", mr7->import_wh);
         ESP_LOGD(TAG, "Meter Energy Export Flags: %08x", mr7->export_wh);
         ESP_LOGD(TAG, "Meter Power Flags: %08x", mr7->watts);
@@ -620,10 +623,13 @@ class EmporiaVueUtility : public PollingComponent, public uart::UARTDevice {
    *
    * For MGM version 7 and 8
    */
-  float parse_meter_watts_v7(int32_t watts) {
+  float parse_meter_watts_v7(struct MeterReadingV7 *mr) {
     // Read the instant watts value
     // (it's actually a 24-bit int)
-    watts >>= 8;
+    int32_t watts_raw = mr->watts;
+    watts_raw >>= 8;
+    float watts = ((float)watts_raw * (float)mr->meter_div) /
+                  ((float)mr->cost_unit / 1000.0);
 
     if ((watts >= WATTS_MAX) || (watts < WATTS_MIN)) {
       ESP_LOGE(TAG, "Unreasonable watts value %d", watts);
