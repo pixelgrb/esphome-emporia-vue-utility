@@ -275,6 +275,11 @@ class EmporiaVueUtility : public PollingComponent, public uart::UARTDevice {
     return x;
   }
 
+  float apply_watt_adjustment(int64_t input, uint8_t meter_div,
+                              uint16_t cost_unit) {
+    return ((float)input * (float)meter_div) / ((float)cost_unit / 1000.0);
+  }
+
   void handle_resp_meter_reading() {
     int32_t input_value;
     float watt_hours;
@@ -295,26 +300,14 @@ class EmporiaVueUtility : public PollingComponent, public uart::UARTDevice {
       }
 
       // Setup Meter Divisor
-      if ((mr2->meter_div > 10) || (mr2->meter_div < 1)) {
-        ESP_LOGW(TAG, "Unreasonable MeterDiv value %d, ignoring",
-                 mr2->meter_div);
-        last_reading_has_error = 1;
-        ask_for_bug_report();
-      } else if ((meter_div != 0) && (mr2->meter_div != meter_div)) {
-        ESP_LOGW(TAG, "MeterDiv value changed from %d to %d", meter_div,
-                 mr2->meter_div);
-        last_reading_has_error = 1;
-        meter_div = mr2->meter_div;
-      } else {
-        meter_div = mr2->meter_div;
-      }
+      meter_div = parse_meter_div(mr2->meter_div);
 
       // Setup Cost Unit
       cost_unit =
           ((mr2->cost_unit & 0x00FF) << 8) + ((mr2->cost_unit & 0xFF00) >> 8);
 
       watt_hours = parse_meter_watt_hours_v2(mr2);
-      watts = parse_meter_watts_v2(mr2);
+      watts = parse_meter_watts_v2(mr2->watts);
 
       // Extra debugging of non-zero bytes, only on first packet or if
       // debug_ is true
@@ -352,15 +345,20 @@ class EmporiaVueUtility : public PollingComponent, public uart::UARTDevice {
         return;
       }
 
+      // Setup Meter Divisor
+      meter_div = parse_meter_div(mr7->meter_div);
+
+      // Setup Cost Unit
       cost_unit = mr7->cost_unit;
-      watts = parse_meter_watts_v7(mr7);
+
+      watts = parse_meter_watts_v7(mr7->watts);
       watt_hours = parse_meter_watt_hours_v7(mr7);
 
       // Extra debugging of non-zero bytes, only on first packet or if
       // debug_ is true
       if ((debug_) || (last_meter_reading == 0)) {
         ESP_LOGD(TAG, "Meter Cost Unit: %d", cost_unit);
-        ESP_LOGD(TAG, "Meter Divisor: %d", mr7->meter_div);
+        ESP_LOGD(TAG, "Meter Divisor: %d", meter_div);
         ESP_LOGD(TAG, "Meter Energy Import Flags: %08x", mr7->import_wh);
         ESP_LOGD(TAG, "Meter Energy Export Flags: %08x", mr7->export_wh);
         ESP_LOGD(TAG, "Meter Power Flags: %08x", mr7->watts);
@@ -406,6 +404,23 @@ class EmporiaVueUtility : public PollingComponent, public uart::UARTDevice {
     ESP_LOGE(TAG, "EOF");
   }
 
+  uint8_t parse_meter_div(uint8_t new_meter_div) {
+    uint8_t div;
+    if ((new_meter_div > 10) || (new_meter_div < 1)) {
+      ESP_LOGW(TAG, "Unreasonable MeterDiv value %d, ignoring", new_meter_div);
+      last_reading_has_error = 1;
+      ask_for_bug_report();
+    } else if ((meter_div != 0) && (new_meter_div != meter_div)) {
+      ESP_LOGW(TAG, "MeterDiv value changed from %d to %d", meter_div,
+               new_meter_div);
+      last_reading_has_error = 1;
+      div = new_meter_div;
+    } else {
+      div = new_meter_div;
+    }
+    return div;
+  }
+
   float parse_meter_watt_hours_v2(struct MeterReadingV2 *mr) {
     // Keep the last N watt-hour samples so invalid new samples can be discarded
     static float history[MAX_WH_CHANGE_ARY];
@@ -433,7 +448,7 @@ class EmporiaVueUtility : public PollingComponent, public uart::UARTDevice {
     }
 
     // Handle if a meter divisor is in effect
-    watt_hours = (float)watt_hours_raw * (float)meter_div;
+    watt_hours = apply_watt_adjustment(watt_hours_raw, meter_div, cost_unit);
 
     if (!not_first_run) {
       // Initialize watt-hour filter on first run
@@ -505,8 +520,8 @@ class EmporiaVueUtility : public PollingComponent, public uart::UARTDevice {
     static uint32_t prev_returned;
     int32_t net = 0;
 
-    consumed = mr->import_wh;
-    returned = mr->export_wh;
+    consumed = apply_watt_adjustment(mr->import_wh, meter_div, cost_unit);
+    returned = apply_watt_adjustment(mr->export_wh, meter_div, cost_unit);
     int32_t consumed_diff = int32_t(consumed) - int32_t(prev_consumed);
     int32_t returned_diff = int32_t(returned) - int32_t(prev_returned);
 
@@ -561,36 +576,36 @@ class EmporiaVueUtility : public PollingComponent, public uart::UARTDevice {
    *
    * For MGM version 2 (to 6?)
    */
-  float parse_meter_watts_v2(struct MeterReadingV2 *mr) {
-    int32_t watts_raw;
+  float parse_meter_watts_v2(int32_t watts_raw) {
+    int32_t watts_24bit;
     float watts;
 
     // Read the instant watts value
     // (it's actually a 24-bit int)
-    watts_raw = (endian_swap(mr->watts) & 0xFFFFFF);
+    watts_24bit = (endian_swap(watts_raw) & 0xFFFFFF);
 
     // Bit 1 of the left most byte indicates a negative value
-    if (watts_raw & 0x800000) {
-      if (watts_raw == 0x800000) {
+    if (watts_24bit & 0x800000) {
+      if (watts_24bit == 0x800000) {
         // Exactly "negative zero", which means "missing data"
         ESP_LOGI(TAG, "Instant Watts value missing");
         return (0);
-      } else if (watts_raw & 0xC00000) {
+      } else if (watts_24bit & 0xC00000) {
         // This is either more than 12MW being returned,
         // or it's a negative number in 1's complement.
         // Since the returned value is a 24-bit value
         // and "watts" is a 32-bit signed int, we can
         // get away with this.
-        watts_raw -= 0xFFFFFF;
+        watts_24bit -= 0xFFFFFF;
       } else {
         // If we get here, then hopefully it's a negative
         // number in signed magnitude format
-        watts_raw = (watts_raw ^ 0x800000) * -1;
+        watts_24bit = (watts_24bit ^ 0x800000) * -1;
       }
     }
 
-    // Handle if a meter divisor is in effect
-    watts = (float)watts_raw * (float)meter_div;
+    // Handle the adjustment.
+    watts = apply_watt_adjustment(watts_24bit, meter_div, cost_unit);
 
     if ((watts >= WATTS_MAX) || (watts < WATTS_MIN)) {
       ESP_LOGE(TAG, "Unreasonable watts value %f", watts);
@@ -623,13 +638,11 @@ class EmporiaVueUtility : public PollingComponent, public uart::UARTDevice {
    *
    * For MGM version 7 and 8
    */
-  float parse_meter_watts_v7(struct MeterReadingV7 *mr) {
+  float parse_meter_watts_v7(int32_t watts_raw) {
     // Read the instant watts value
     // (it's actually a 24-bit int)
-    int32_t watts_raw = mr->watts;
     watts_raw >>= 8;
-    float watts = ((float)watts_raw * (float)mr->meter_div) /
-                  ((float)mr->cost_unit / 1000.0);
+    float watts = apply_watt_adjustment(watts_raw, meter_div, cost_unit);
 
     if ((watts >= WATTS_MAX) || (watts < WATTS_MIN)) {
       ESP_LOGE(TAG, "Unreasonable watts value %d", watts);
