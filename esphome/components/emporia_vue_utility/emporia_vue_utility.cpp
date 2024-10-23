@@ -7,8 +7,10 @@ namespace emporia_vue_utility {
 
 void EmporiaVueUtility::setup() {
 #if USE_LED_PINS
-  pinMode(LED_PIN_LINK, OUTPUT);
-  pinMode(LED_PIN_WIFI, OUTPUT);
+  gpio_pad_select_gpio(LED_PIN_LINK);
+  gpio_set_direction(LED_PIN_LINK, GPIO_MODE_OUTPUT);
+  gpio_pad_select_gpio(LED_PIN_WIFI);
+  gpio_set_direction(LED_PIN_WIFI, GPIO_MODE_OUTPUT);
 #endif
   led_link(false);
   led_wifi(false);
@@ -53,7 +55,7 @@ void EmporiaVueUtility::loop() {
         if (now < last_meter_reading + int(update_interval_ / 4)) {
           // Sometimes a duplicate message is sent in quick succession.
           // Ignoring the duplicate.
-          ESP_LOGD(TAG, "Got extra message %ds after the previous message.",
+          ESP_LOGD(TAG, "Got extra message %lds after the previous message.",
                    now - last_meter_reading);
           break;
         }

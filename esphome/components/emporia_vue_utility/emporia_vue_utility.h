@@ -1,6 +1,6 @@
 #pragma once
 
-#include <Arduino.h>
+#include "driver/gpio.h"
 
 #include "esphome/components/sensor/sensor.h"
 #include "esphome/components/uart/uart.h"
@@ -36,8 +36,8 @@
 // set to false if you want manually manage them elsewhere
 #define USE_LED_PINS true
 
-#define LED_PIN_LINK 32
-#define LED_PIN_WIFI 33
+#define LED_PIN_LINK GPIO_NUM_32
+#define LED_PIN_WIFI GPIO_NUM_33
 
 static const char *TAG = "emporia_vue_utility";
 
@@ -54,16 +54,16 @@ class EmporiaVueUtility : public PollingComponent, public uart::UARTDevice {
     char is_resp;
     char msg_type;
     uint8_t data_len;
-    byte unknown0[4];     // Payload Bytes 0 to 3
+    uint8_t unknown0[4];     // Payload Bytes 0 to 3
     uint32_t watt_hours;  // Payload Bytes 4 to 7
-    byte unknown8[39];    // Payload Bytes 8 to 46
+    uint8_t unknown8[39];    // Payload Bytes 8 to 46
     uint8_t meter_div;    // Payload Byte  47
-    byte unknown48[2];    // Payload Bytes 48 to 49
+    uint8_t unknown48[2];    // Payload Bytes 48 to 49
     uint16_t cost_unit;   // Payload Bytes 50 to 51
-    byte maybe_flags[2];  // Payload Bytes 52 to 53
-    byte unknown54[2];    // Payload Bytes 54 to 55
+    uint8_t maybe_flags[2];  // Payload Bytes 52 to 53
+    uint8_t unknown54[2];    // Payload Bytes 54 to 55
     uint32_t watts;       // Payload Bytes 56 to 59
-    byte unknown3[88];    // Payload Bytes 60 to 147
+    uint8_t unknown3[88];    // Payload Bytes 60 to 147
     uint32_t timestamp;   // Payload Bytes 148 to 152
   };
 
@@ -71,22 +71,22 @@ class EmporiaVueUtility : public PollingComponent, public uart::UARTDevice {
    * Format known from MGM Firmware version 7 and 8.
    */
   struct MeterReadingV7 {
-    byte header;
-    byte is_resp;
-    byte msg_type;
+    uint8_t header;
+    uint8_t is_resp;
+    uint8_t msg_type;
     uint8_t data_len;
-    byte unknown0;     // Payload Byte  0 : Always 0x18
-    byte increment;    // Payload Byte  1 : Increments on each reading and rolls
+    uint8_t unknown0;     // Payload Byte  0 : Always 0x18
+    uint8_t increment;    // Payload Byte  1 : Increments on each reading and rolls
                        // over
-    byte unknown2[5];  // Payload Bytes 2 to 6
+    uint8_t unknown2[5];  // Payload Bytes 2 to 6
     uint32_t import_wh;  // Payload Bytes 7 to 10
-    byte unknown11[6];   // Payload Bytes 11 to 16
+    uint8_t unknown11[6];   // Payload Bytes 11 to 16
     uint32_t export_wh;  // Payload Bytes 17 to 20
-    byte unknown21[6];   // Payload Bytes 21 to 26
+    uint8_t unknown21[6];   // Payload Bytes 21 to 26
     uint8_t meter_div;   // Payload Byte  27
-    byte unknown28[6];   // Payload Bytes 28 to 33
+    uint8_t unknown28[6];   // Payload Bytes 28 to 33
     uint16_t cost_unit;  // Payload Bytes 34 to 35
-    byte unknown36[4];   // Payload Bytes 36 to 39
+    uint8_t unknown36[4];   // Payload Bytes 36 to 39
     uint32_t watts;  // Payload Bytes 40 to 43 : Starts with 0x2A, only use the
                      // last 24 bits.
   } __attribute__((packed));
@@ -97,7 +97,7 @@ class EmporiaVueUtility : public PollingComponent, public uart::UARTDevice {
     char is_resp;
     char msg_type;
     uint8_t data_len;
-    byte addr[8];
+    uint8_t addr[8];
     char newline;
   };
 
@@ -112,7 +112,7 @@ class EmporiaVueUtility : public PollingComponent, public uart::UARTDevice {
   };
 
   union input_buffer {
-    byte data[260];  // 4 byte header + 255 bytes payload + 1 byte terminator
+    uint8_t data[260];  // 4 byte header + 255 bytes payload + 1 byte terminator
     struct MeterReadingV2 mr2;
     struct MeterReadingV7 mr7;
     struct Addr addr;
@@ -166,9 +166,9 @@ class EmporiaVueUtility : public PollingComponent, public uart::UARTDevice {
   void led_wifi(bool state) {
 #if USE_LED_PINS
     if (state)
-      digitalWrite(LED_PIN_WIFI, 0);
+      gpio_set_level(LED_PIN_WIFI, 0);
     else
-      digitalWrite(LED_PIN_WIFI, 1);
+      gpio_set_level(LED_PIN_WIFI, 1);
 #endif
     return;
   }
@@ -177,9 +177,9 @@ class EmporiaVueUtility : public PollingComponent, public uart::UARTDevice {
   void led_link(bool state) {
 #if USE_LED_PINS
     if (state)
-      digitalWrite(LED_PIN_LINK, 0);
+      gpio_set_level(LED_PIN_LINK, 0);
     else
-      digitalWrite(LED_PIN_LINK, 1);
+      gpio_set_level(LED_PIN_LINK, 1);
 #endif
     return;
   }
@@ -316,8 +316,8 @@ class EmporiaVueUtility : public PollingComponent, public uart::UARTDevice {
         ESP_LOGD(TAG, "Meter Cost Unit: %d", cost_unit);
         ESP_LOGD(TAG, "Meter Flags: %02x %02x", mr2->maybe_flags[0],
                  mr2->maybe_flags[1]);
-        ESP_LOGD(TAG, "Meter Energy Flags: %02x", (byte)mr2->watt_hours);
-        ESP_LOGD(TAG, "Meter Power Flags: %02x", (byte)mr2->watts);
+        ESP_LOGD(TAG, "Meter Energy Flags: %02x", (uint8_t)mr2->watt_hours);
+        ESP_LOGD(TAG, "Meter Power Flags: %02x", (uint8_t)mr2->watts);
         // Unlike the other values, ms_since_reset is in our native byte order
         ESP_LOGD(TAG, "Meter Timestamp: %.f", float(mr2->timestamp) / 1000.0);
         ESP_LOGD(TAG, "Meter Energy: %.3fkWh", watt_hours / 1000.0);
@@ -714,14 +714,14 @@ class EmporiaVueUtility : public PollingComponent, public uart::UARTDevice {
   }
 
   void send_meter_request() {
-    const byte msg[] = {0x24, 0x72, 0x0d};
+    const uint8_t msg[] = {0x24, 0x72, 0x0d};
     ESP_LOGD(TAG, "Sending request for meter reading");
     write_array(msg, sizeof(msg));
     led_link(false);
   }
 
   void send_meter_join() {
-    const byte msg[] = {0x24, 0x6a, 0x0d};
+    const uint8_t msg[] = {0x24, 0x6a, 0x0d};
     ESP_LOGI(TAG, "MGM Firmware Version: %d", mgm_firmware_ver);
     ESP_LOGI(TAG, "MGM Mac Address:  %s", mgm_mac_address);
     ESP_LOGI(TAG, "MGM Install Code: %s (secret)", mgm_install_code);
@@ -745,21 +745,21 @@ class EmporiaVueUtility : public PollingComponent, public uart::UARTDevice {
   }
 
   void send_mac_req() {
-    const byte msg[] = {0x24, 0x6d, 0x0d};
+    const uint8_t msg[] = {0x24, 0x6d, 0x0d};
     ESP_LOGD(TAG, "Sending mac addr request");
     write_array(msg, sizeof(msg));
     led_wifi(false);
   }
 
   void send_install_code_req() {
-    const byte msg[] = {0x24, 0x69, 0x0d};
+    const uint8_t msg[] = {0x24, 0x69, 0x0d};
     ESP_LOGD(TAG, "Sending install code request");
     write_array(msg, sizeof(msg));
     led_wifi(false);
   }
 
   void send_version_req() {
-    const byte msg[] = {0x24, 0x66, 0x0d};
+    const uint8_t msg[] = {0x24, 0x66, 0x0d};
     ESP_LOGD(TAG, "Sending firmware version request");
     write_array(msg, sizeof(msg));
     led_wifi(false);
