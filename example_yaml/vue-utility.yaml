@@ -4,13 +4,17 @@
 
 esphome:
     name: vue-utility
-    platform: ESP32
-    board: esp-wrover-kit
+
+esp32:
+  board: esp-wrover-kit
+  framework:
+    type: esp-idf
 
 external_components:
   source:
     type: git
     url: https://github.com/nekorevend/esphome-emporia-vue-utility
+    ref: esp-idf
 
 # Add your own wifi credentials
 wifi:
