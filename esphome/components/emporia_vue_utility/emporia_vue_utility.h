@@ -405,7 +405,7 @@ class EmporiaVueUtility : public PollingComponent, public uart::UARTDevice {
   }
 
   uint8_t parse_meter_div(uint8_t new_meter_div) {
-    uint8_t div;
+    uint8_t div = new_meter_div;
     if ((new_meter_div > 10) || (new_meter_div < 1)) {
       ESP_LOGW(TAG, "Unreasonable MeterDiv value %d, ignoring", new_meter_div);
       last_reading_has_error = 1;
@@ -414,8 +414,6 @@ class EmporiaVueUtility : public PollingComponent, public uart::UARTDevice {
       ESP_LOGW(TAG, "MeterDiv value changed from %d to %d", meter_div,
                new_meter_div);
       last_reading_has_error = 1;
-      div = new_meter_div;
-    } else {
       div = new_meter_div;
     }
     return div;
@@ -539,8 +537,9 @@ class EmporiaVueUtility : public PollingComponent, public uart::UARTDevice {
       // 1) Some sort of outage causes a long gap between the previous reading
       // (or is 0 after a reboot) and the current reading. In this case, the
       // difference from the previous reading can be "too" large, but actually
-      // be expected. 2) I have seen erroneous blips of a single sample with a
-      // value that is way too big.
+      // be expected.
+      // 2) I have seen erroneous blips of a single sample with a value that is
+      // way too big.
       //
       // The code handles scenario #1 by ignoring the current reading but then
       // continuing on as normal after. The code handles scenario #2 by ignoring
@@ -645,7 +644,7 @@ class EmporiaVueUtility : public PollingComponent, public uart::UARTDevice {
     float watts = apply_watt_adjustment(watts_raw, meter_div, cost_unit);
 
     if ((watts >= WATTS_MAX) || (watts < WATTS_MIN)) {
-      ESP_LOGE(TAG, "Unreasonable watts value %d", watts);
+      ESP_LOGE(TAG, "Unreasonable watts value %f", watts);
       last_reading_has_error = 1;
     } else {
       if (power_sensor_ != nullptr) {
