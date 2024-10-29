@@ -105,9 +105,9 @@ uart:
   baud_rate: 115200
 ```
 
-Then, within the `sensor:` configuration, you can add optionally add `uart_id: emporia_uart`. I believe it is optional if there is only one `uart:` defined as it should just use the one that exists.
+Then, within the `sensor:` configuration, you can add `uart_id: emporia_uart`. I believe it is optional if there is only one `uart:` defined.
 
-Example with the field added:
+Example with `uart_id` added:
 ```yaml
 sensor:
   - platform: emporia_vue_utility
@@ -121,7 +121,7 @@ The `update_interval` lets you define the rate at which we ask the utility meter
 
 Note that the utility meter has its own update rate, and if you poll more frequently it will just give you the same value as before. Some users report being able to receive new values every 5 seconds while I only see a new value every 15 seconds. You are welcome to trial-and-error and see how frequently you can get updated values and settle on a value that makes sense to you.
 
-Example with the field added:
+Example with `update_interval` added:
 ```yaml
 sensor:
   - platform: emporia_vue_utility
@@ -157,7 +157,7 @@ When enabled, each reading will cause the log to output something like this:
 [00:05:17][D][emporia_vue_utility:377]: Meter Response Bytes  40 to  43: 2a 8d 03 00
 ```
 
-Example with the field added:
+Example with `debug` added:
 ```yaml
 sensor:
   - platform: emporia_vue_utility
