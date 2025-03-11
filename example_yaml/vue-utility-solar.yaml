@@ -3,9 +3,10 @@
 ##################################################
 
 esphome:
-    name: vue-utility
-    platform: ESP32
-    board: esp-wrover-kit
+  name: vue-utility
+
+esp32:
+  board: esp-wrover-kit
 
 external_components:
   source:
