@@ -8,10 +8,22 @@ esphome:
 esp32:
   board: esp-wrover-kit
 
-external_components:
-  source:
-    type: git
-    url: https://github.com/nekorevend/esphome-emporia-vue-utility
+web_server:
+  port: 80
+  auth:
+    username: 'glen'
+    password: 'vue_password'
+
+# ----------------------------------------------------------------------------
+# I comment this section out, so compilation occurs using the local copy
+# of the C++ code.  You also need to rename (or copy) 'components' directory
+# to 'custom_components'.
+# ----------------------------------------------------------------------------
+#
+# external_components:
+#   source:
+#     type: git
+#     url: https://github.com/nekorevend/esphome-emporia-vue-utility
 
 # Add your own wifi credentials
 wifi:
@@ -19,6 +31,7 @@ wifi:
   password: !secret wifi_password
 
 ota:
+  platform: esphome
 
 logger:
   logs:
@@ -44,6 +57,7 @@ uart:
 sensor:
   - platform: emporia_vue_utility
     uart_id: emporia_uart
+    update_interval: 15s
     power:
       name: 'Watts'
       # Report every 5 minutes or when +/- 20 watts
