@@ -7,8 +7,8 @@ namespace emporia_vue_utility {
 
 void EmporiaVueUtility::setup() {
 #if USE_LED_PINS
-  pinMode(LED_PIN_LINK, OUTPUT);
-  pinMode(LED_PIN_WIFI, OUTPUT);
+  set_pin_to_output(LED_PIN_LINK);
+  set_pin_to_output(LED_PIN_WIFI);
 #endif
   led_link(false);
   led_wifi(false);
