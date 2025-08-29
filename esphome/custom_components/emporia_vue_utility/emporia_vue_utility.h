@@ -794,5 +794,10 @@ class EmporiaVueUtility : public PollingComponent, public uart::UARTDevice {
   bool ready_to_read_meter_ = false;
 };
 
+static inline void set_pin_to_output(gpio_num_t pin) {
+  gpio_reset_pin(pin);
+  gpio_set_direction(pin, GPIO_MODE_OUTPUT);
+}
+
 }  // namespace emporia_vue_utility
 }  // namespace esphome
