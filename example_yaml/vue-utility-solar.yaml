@@ -43,6 +43,13 @@ uart:
     tx_pin: GPIO22
     baud_rate: 115200
 
+# Global value for the fast reporting button
+globals:
+    - id: fast_reporting
+      type: bool
+      restore_value: no
+      initial_value: "false"
+
 sensor:
   - platform: emporia_vue_utility
     uart_id: emporia_uart
@@ -133,13 +140,6 @@ button:
         - lambda: id(fast_reporting) = true;
         - delay: 5min
         - lambda: id(fast_reporting) = false;
-
-# Global value for above button
-globals:
-    - id: fast_reporting
-      type: bool
-      restore_value: no
-      initial_value: "false"
 
 # This LED is marked D3 on the pcb and is the power led on the case
 status_led:
