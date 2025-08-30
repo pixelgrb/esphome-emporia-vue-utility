@@ -7,6 +7,8 @@ esphome:
 
 esp32:
   board: esp-wrover-kit
+  framework:
+    type: esp-idf
 
 web_server:
   port: 80
@@ -53,6 +55,13 @@ uart:
   rx_pin: GPIO21
   tx_pin: GPIO22
   baud_rate: 115200
+
+# Global value for above button
+globals:
+  - id: fast_reporting
+    type: bool
+    restore_value: no
+    initial_value: 'false'
 
 sensor:
   - platform: emporia_vue_utility
@@ -145,13 +154,6 @@ button:
       - lambda: id(fast_reporting) = true;
       - delay: 5min
       - lambda: id(fast_reporting) = false;
-
-# Global value for above button
-globals:
-  - id: fast_reporting
-    type: bool
-    restore_value: no
-    initial_value: 'false'
 
 # This LED is marked D3 on the pcb and is the power led on the case
 status_led:
