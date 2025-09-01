@@ -1,4 +1,4 @@
-# Meter Response Payload
+# Meter Reading
 
 There are at least two known response payloads sent by the MGM111 chip. MGM Firmware version 2 sends a 152 byte payload while version 7 sends a 44 byte payload. Check the section below relevant to your version.
 

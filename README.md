@@ -1,177 +1,235 @@
-# ESPHome Emporia Vue Utility Connect Unofficial Firmware
+# ESPHome for Emporia Vue Utility Connect
 
-This is an unauthorized and unoffical firmware for the Emporia View Utility Connect device that reports energy usage to Home Assistant and completely divorces the device from Emporia's servers.
+<img align="right" src="docs/vue_product_700.jpg" height="300" style="margin-right: 20px;" />
 
-## Disclaimer
+This project provides **unofficial ESPHome firmware** for the [Emporia Vue Utility Connect](https://shop.emporiaenergy.com/products/utility-connect) - a small device that wirelessly reads your utility meter to report real-time energy usage.
 
-There is no guarantee of quality.   When you install the software on your device, it will no longer report data to Emporia.  You should backup the original Emporia firmware before installing this.
+Normally, the Vue sends your data to Emporia’s **cloud servers**, and the only way to access it is through the Emporia mobile app. This project enables you to flash custom firmware, built with ESPHome, to report **directly to Home Assistant** over Wi-Fi. That means:
 
-## Backup the original firmware
+- Your energy data stays local.
+- You get real-time readings in Home Assistant.
+- You can build automations, dashboards, and long-term storage however you like.
 
-Determine which COM device your USB to serial adapter is and use it in the below command(s). Typically a single digit number. (e.g. `COM3`)
+For a more detail overview: [Basics Explained](docs/basics.md).
 
-Backup:
 
-`.\esptool --port COM# --chip esp32 -b 115200 read_flash 0x0 0x400000 .\vueUtilityConnect_stock.bin`
+**⚠️ Disclaimer**: This project is not supported by Emporia.
+- This is community software, with no guarantee of reliability or safety. Use at your own risk.  
+- Flashing this firmware will stop the Vue from sending data to Emporia’s cloud service, and the Emporia app will no longer work.  You should back up the original firmware first if you want to revert later.
 
-Restore:
+<br>
 
-`.\esptool --port COM# --chip esp32 -b 115200 write_flash --flash_freq 80m 0x0 .\vueUtilityConnect_stock.bin`
+## More information
 
-## Installation
+This document links to other sections in this project.
 
-Connect a your USB to serial adapter to the port marked "P3" as follows:
+- [Basics Explained](docs/basics.md)
+- [Installing ESPHome](docs/installing_esphome.md)
+- [Wiring and USB adapter](docs/wiring_and_usb.md)
+- [Backup original firmware](docs/backup_firmware.md)
+- [YAML Configuration](docs/yaml.md)
+- technical details:
+  - [Protocol Details](docs/protocol.md)
+  - [Hardware Pinouts](docs/pinout.md)
+  - [Meter Reading](docs/protocol-meter-reading.md)
 
-| Pin | Description | USB-Serial port |
-| --- |  ---------  | --------------- |
-|  1  |        IO0  |             RTS |
-|  2  |         EN  |             DTR |
-|  3  |        GND  |             GND |
-|  4  |         TX  |              RX |
-|  5  |         RX  |              TX |
-|  6  |        +5v  |             +5v |
+Need help?
+- See the: [FAQ](docs/faq.md)
+- The [Community thread](https://community.home-assistant.io/t/emporia-vue-utility-connect/) has accumulated years of useful information about this project, and the place to go for help.
 
-Note that pin 6 (the pin just above the text "EmporiaEnergy") is 5 volts, not 3.3v.  Use caution not to apply 5V to the wrong pin or
-the magic smoke may come out.  You may want to not connect pin 6 at all and instead plug the device into a usb port to provide power,
-a portable USB battery pack works well for this.
+<br>
 
-Instead of connecting IO0 and EN, you can simply short IO0 to ground while connecting power to get the device into bootloader mode.
+## What you'll need
 
-Use either YAML file in the `example_yaml` directory and modify it to your liking.
+**1. First: Check Utility Compatibility**
+- Start here: [How the Vue Utility Connect Works](https://www.emporiaenergy.com/how-the-vue-utility-connect-works/).  
+  Emporia publishes a list of supported utilities. Examples include PG&E (CA), SCE (CA), PPL (PA), ComEd (IL), AEP (TX).  
+- Read the [detailed instructions](https://help.emporiaenergy.com/en/articles/9084294-how-does-the-vue-utility-connect-work).  
+Note: There is a **pairing process**. It is advisable to pair the Vue with your utility meter using the stock firmware and the Emporia app first.
 
-Execute `esphome run vue-utility.yaml` or `esphome run vue-utility-solar.yaml` to build and install.
+**2. Hardware**
+- **Emporia Vue Utility Connect** — purchase from [Emporia’s store](https://shop.emporiaenergy.com/products/utility-connect).  
+- **USB-to-Serial adapter** — required for initial flashing.  See: [Wiring and USB adapter](docs/wiring_and_usb.md)
+- **Basic wiring hardware and skills** — you will need to open the Vue and connect to a row of through-hole pads.  See: [Wiring and USB adapter](docs/wiring_and_usb.md)
 
-## YAML configuration
+**3. Software**
+- **ESPHome** — the toolchain to build the firmware and flash it onto the Vue.  There are options.  See: [Installing ESPHome](docs/installing_esphome.md)
+- **ESPHome integration for Home Assistant** — this guide uses the [official integration](https://www.home-assistant.io/integrations/esphome).
 
-This sensor component provides **6** output values and takes **3** configuration options.
+<br>
 
-A full configuration can look like this:
-```yaml
-# Boilerplate UART configuration.
-uart:
-  id: emporia_uart
-  rx_pin: GPIO21
-  tx_pin: GPIO22
-  baud_rate: 115200
+## Steps
 
-# The actual sensor configuration.
-sensor:
-  - platform: emporia_vue_utility
-    uart_id: emporia_uart
-    debug: true
-    update_interval: 15s
-    power:
-      name: "${name} Watts"
-    power_export:
-      name: "${name} Watts Returned"
-    power_import:
-      name: "${name} Watts Consumed"
-    energy:
-      name: "${name} Wh Net"
-    energy_export:
-      name: "${name} Wh Returned"
-    energy_import:
-      name: "${name} Wh Consumed"
+### 1. Pair the Vue device with your smart meter.
+
+The Vue Utility Connect device needs to be [paired with your smart meter](https://help.emporiaenergy.com/en/articles/9084294-how-does-the-vue-utility-connect-work) to work.  Think of it like pairing a bluetooth device.  The exact process is specific to your utility.  Pairing is done on the Smart Meter side, using the unique IDs from the Vue device.  Essentially pairing is configuring the Smart Meter so it will respond to the Vue.
+
+Once paired, flashing the firmware of the Vue does not break the pairing.  Those unique codes are not part of the firmware, they are part of the hardware.  So the Vue can still read the meter.
+
+Let's say you flash your Vue device and it's working, but later your smart meter is replaced.  You can pair your Vue device with the new smart meter with the custom firmware installed.
+
+So should you flash the Vue with this firmware as soon as you receive it?  This is not advised.  **It is better to pair it with stock firmware** and use the Emporia App to confirm it is working.  This is the supported way to do so, and if you have any problems you can get the support of Emporia.
+
+**Note:** The Vue device needs to wirelessly talk to your meter, and your Wi-Fi at the same time to properly function.  So it needs to be located within range of both, and it is best to work in such a location.  This is important whenever you expect the device to be working (pairing the device, and testing it after flashing).
+
+
+----
+
+### 2. Wire up the device to a USB to TTL adapter
+
+To both backup the stock firmware, and flash the firmware the first time, you need to do so with wires and a USB to TTL serial adapter.  This is usually a one-time thing.  Once the firmware is installed and the device is on your network, subsequent flashing can be done over Wi-Fi.
+
+See the [Wiring and USB adapter](docs/wiring_and_usb.md) section.
+
+----
+
+### 3. Install ESPHome
+
+There are two main ways to run ESPHome.  You may want to use both.
+
+See the [Installing ESPHome](docs/installing_esphome.md) section.
+
+-----
+
+### 4. Back up the original firmware
+
+This is an optional step.  If you want to be able to restore the original firmware on the Vue device and get the Emporia app to work again, you need to back up the firmware so you can later restore it.
+
+See the [Backup original firmware](docs/backup_firmware.md) section.
+
+----
+
+### 5. Create a YAML configuration
+
+Pick one of the [example YAML files](example_yaml/) in this project as a starting point.  You will need to customize it.
+1. for ESPHome CLI, you will do this in a text file on your computer.
+2. for ESPHome Device Builder, you will do within the Device Builder editor in Home Assistant UI.
+
+Minimally, you need to fill out this section of the YAML file.  By default, ESPHome looks in a file called `secrets.yaml` for them.
+
+```
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
 ```
 
-Note: You likely do not need all of these fields.
+So either edit the yaml file directly with your credentials, or put them in a separate `secrets.yaml` file like this (you can do so both ways with the CLI and Device Builder):
 
-### Outputs
+```
+wifi_ssid: "MyHomeWiFi"
+wifi_password: "supersecretpassword"
+```
 
-The output values are all *optional* and categorized into instantaneous power (aka. watts) and total energy usage (aka. watt-hours) in "import", "export", and "net" variations. Their relationship is: `net = import - export`
+Some YAML configurations include an MQTT section.  If you don't know what this is, just remove it.  You do not need it.  If you use MQTT and want to read the data via MQTT topics, fill it out.
+```
+mqtt:
+  broker: !secret mqtt_broker
+  id: vue_utility
+  username: !secret mqtt_username
+  password: !secret mqtt_password
+  discovery: False # Only if you use the HA API usually
+```
+
+----
+
+### 6. Compile and Flash:
+
+Whether you use the ESPHome CLI or the Device Builder, the first time you flash you will need to do this with a USB to TTL Adapter.  After that, you will be given the option to flash over wifi, which is much faster.
+
+**Reminder:** triple check your wiring, making sure you are not connecting +5V to anything other than pin 6.  You can now plug it into your computer and the Vue device should power up and start working as normal.  ESPHome will flash it when it comes time.
+
+You would do **ONE** of these steps depending on which [ESPHome Install method](docs/installing_esphome.md) you picked:
+
+#### A) For ESPHome CLI:
+
+You **do not need** to clone this git repo.  Even though this project has custom code in it (Python and C++), ESPHome will download the latest custom code from this project automatically from GitHub as part of the compilation step.  Assuming you called this file `vue-utility-solar.yaml` from the previous step, you would run:
+
+```
+esphome run vue-utility-solar.yaml  
+```
+
+This should build the firmware and flash the device all on the command line.
+
+**-- OR --**
+#### B) For ESPHome Device Builder:
+
+- go to the [ESPHome Device Builder Add-on](https://esphome.io/guides/getting_started_hassio/)
+- click `Open web UI`
+- follow the UI to create a device.
+- paste the YAML code into the editor and customize it as above
+- click `Install`
+
+This should build the firmware and flash the device all within the web browser:
+- ESPHome uses WebSerial (a browser API supported in Chrome/Edge).  ESPHome compiles the firmware on your HA server, streams it over WebSerial and flashes the Vue on your computer.
+- To be clear: if Home Assistant is running on a Raspberry PI in a closet, you will have the USB to TTL Adapter connected to your computer, not the raspberry PI.
+
+
+----
+
+### 7. Install ESPHome Integration in Home Assistant
+
+Install the [ESPHome Integration](https://www.home-assistant.io/integrations/esphome) in Home Assistant.  You can you do this ahead of time of course.
+
+That's it.
+
+If everything works, Home Assistant will detect the Vue and automatically create a device and associated sensor entites.  You should be able to read your energy usage immediately.  See [Basics Explained](docs/basics.md) for what that looks like.
+
+#### Bonus:
+
+Set up the [Energy Module](https://www.home-assistant.io/home-energy-management/) in Home Assistant.  Just go to the `Energy configuration` page and:
+ - add the `Utility Watt-hours Consumed` to `Grid consumption`
+ - add the `Utility Watt-hours Produced` to `Returned to Grid`
+
+<br>
+
+
+## Outputs
+
+The output values are all _optional_ and categorized into instantaneous power (aka. watts) and total energy usage (aka. watt-hours) in 'import', 'export', and 'net' variations. Their relationship is: `net = import - export`
 
 #### Watts
+
 - **power** = Net watt usage at that moment in time. Is negative if you have excess solar generation.
 - **power_import** = Watt usage from the grid at that moment in time. Is `0` if your solar generation currently exceeds your usage.
 - **power_export** = Watts sent to the grid at that moment in time. Is `0` if you are using more than your solar is generating.
 
 #### Watt-hours
+
 This is a total energy usage count for the lifetime of your utility meter. The only situations where the count will decrease is if the 32bit value experiences an integer overflow, or if your utility meter is replaced with a new one. For either situation, it is expected that the count(s) will reset to `0`.
 
 - **energy** = Total net watt-hour usage.
 - **energy_import** = Total watt-hours taken from the grid.
 - **energy_export** = Total watt-hours sent to the grid. Is perpetually `0` if you don't have solar generation.
 
-### Configurations
+<br>
 
-#### UART
 
-We need to talk to the MGM chip that talks to the utility meter. This chip is connected to the ESP via `GPIO21` and `GPIO22` and the configuration is:
-```yaml
-uart:
-  id: emporia_uart
-  rx_pin: GPIO21
-  tx_pin: GPIO22
-  baud_rate: 115200
-```
+</br>
 
-Then, within the `sensor:` configuration, you can add `uart_id: emporia_uart`. I believe it is optional if there is only one `uart:` defined.
+## YAML Configuration
 
-Example with `uart_id` added:
-```yaml
-sensor:
-  - platform: emporia_vue_utility
-    uart_id: emporia_uart
-    ...
-```
+You likely can benefit from tweaking the YAML.  We have a dedicated section on [YAML configuration](docs/yaml.md).
 
-#### Poll rate
+</br>
 
-The `update_interval` lets you define the rate at which we ask the utility meter for a new reading. This defaults to `30` seconds, which is also the default in the Emporia stock firmware.
+## FAQ
 
-Note that the utility meter has its own update rate, and if you poll more frequently it will just give you the same value as before. Some users report being able to receive new values every 5 seconds while I only see a new value every 15 seconds. You are welcome to trial-and-error and see how frequently you can get updated values and settle on a value that makes sense to you.
+Got Questions?  Check out the [Frequently Asked Questions](docs/yaml.md).  Then head to the [Community thread](https://community.home-assistant.io/t/emporia-vue-utility-connect/).
 
-Example with `update_interval` added:
-```yaml
-sensor:
-  - platform: emporia_vue_utility
-    update_interval: 15s
-    ...
-```
-
-#### Debug logs
-
-Add `debug: true` if you need to see additional details about issues you're experiencing.
-
-When enabled, each reading will cause the log to output something like this:
-```
-[00:05:17][D][emporia_vue_utility:360]: Meter Cost Unit: 1000
-[00:05:17][D][emporia_vue_utility:361]: Meter Divisor: 1
-[00:05:17][D][emporia_vue_utility:362]: Meter Energy Import Flags: 00596680
-[00:05:17][D][emporia_vue_utility:363]: Meter Energy Export Flags: 0078f478
-[00:05:17][D][emporia_vue_utility:364]: Meter Power Flags: 00038d2a
-[00:05:17][D][emporia_vue_utility:365]: Meter Import Energy: 5858.944kWh
-[00:05:17][D][emporia_vue_utility:366]: Meter Export Energy: 7926.904kWh
-[00:05:17][D][emporia_vue_utility:367]: Meter Net Energy: -2067.960kWh
-[00:05:17][D][emporia_vue_utility:368]: Meter Power:  909W
-[00:05:17][D][emporia_vue_utility:377]: Meter Response Bytes   0 to   3: 18 91 01 00
-[00:05:17][D][emporia_vue_utility:377]: Meter Response Bytes   4 to   7: 00 00 25 80
-[00:05:17][D][emporia_vue_utility:377]: Meter Response Bytes   8 to  11: 66 59 00 00
-[00:05:17][D][emporia_vue_utility:377]: Meter Response Bytes  12 to  15: 00 01 00 00
-[00:05:17][D][emporia_vue_utility:377]: Meter Response Bytes  16 to  19: 25 78 f4 78
-[00:05:17][D][emporia_vue_utility:377]: Meter Response Bytes  20 to  23: 00 00 00 01
-[00:05:17][D][emporia_vue_utility:377]: Meter Response Bytes  24 to  27: 03 00 22 01
-[00:05:17][D][emporia_vue_utility:377]: Meter Response Bytes  28 to  31: 00 00 02 03
-[00:05:17][D][emporia_vue_utility:377]: Meter Response Bytes  32 to  35: 00 22 e8 03
-[00:05:17][D][emporia_vue_utility:377]: Meter Response Bytes  36 to  39: 00 00 04 00
-[00:05:17][D][emporia_vue_utility:377]: Meter Response Bytes  40 to  43: 2a 8d 03 00
-```
-
-Example with `debug` added:
-```yaml
-sensor:
-  - platform: emporia_vue_utility
-    debug: true
-    ...
-```
+</br>
 
 ## Meaning of LEDs
 
 There are three LEDs on the device, which have "power", "wifi" and "link" icons stenciled on the case.
-* **Power** = An ESPHome status led.  Slowly flashing means warning, quickly flashing means error, solid on means OK.  See [status_led](https://esphome.io/components/status_led.html) docs.
-* **Wifi** = Normally solid on, will briefly flash each time a meter rejoin is attempted which indicates poor signal from the meter.
-* **Link** = Flashes off briefly about once every 5 seconds.  More specifically, the LED turns off when a reading from the meter is requested and turns back on when a response is received.  If no response is received then the LED will remain off.  If this LED is never turning on then no readings are being returned by the meter.
+
+- **Power** = An ESPHome status led. Slowly flashing means warning, quickly flashing means error, solid on means OK. See [status_led](https://esphome.io/components/status_led.html) docs.
+- **Wifi** = Normally solid on, will briefly flash each time a meter rejoin is attempted which indicates poor signal from the meter.
+- **Link** = Flashes off briefly about once every 5 seconds. More specifically, the LED turns off when a reading from the meter is requested and turns back on when a response is received. If no response is received then the LED will remain off. If this LED is never turning on then no readings are being returned by the meter.
 
 ## More Details
 
-Check out the `docs` directory for technical details!
+There are more technical documentation available:
+  - [Protocol Details](docs/protocol.md)
+  - [Hardware Pinouts](docs/pinout.md)
+  - [Meter Reading](docs/protocol-meter-reading.md)
+

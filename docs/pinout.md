@@ -1,4 +1,4 @@
-## Pinouts
+# Pinouts
 
 ![Emporia Vue Utility device](device_800.jpg)
 
