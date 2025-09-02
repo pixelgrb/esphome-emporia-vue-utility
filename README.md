@@ -101,7 +101,9 @@ See the [Backup original firmware](docs/backup_firmware.md) section.
 
 ### 5. Create a YAML configuration
 
-Pick one of the [example YAML files](example_yaml/) in this project as a starting point.  You will need to customize it.
+Pick one of the [example YAML files](example_yaml/) in this project as a starting point. The simplest one is `vue-utility-simple.yaml`, but if you want to send fewer datapoints to Home Assistant, then choose one of the `throttled` files.
+
+In any case, you will need to customize it.
 1. for ESPHome CLI, you will do this in a text file on your computer.
 2. for ESPHome Device Builder, you will do within the Device Builder editor in Home Assistant UI.
 
@@ -142,10 +144,10 @@ You would do **ONE** of these steps depending on which [ESPHome Install method](
 
 #### A) For ESPHome CLI:
 
-You **do not need** to clone this git repo.  Even though this project has custom code in it (Python and C++), ESPHome will download the latest custom code from this project automatically from GitHub as part of the compilation step.  Assuming you called this file `vue-utility-solar.yaml` from the previous step, you would run:
+You **do not need** to clone this git repo.  Even though this project has custom code in it (Python and C++), ESPHome will download the latest custom code from this project automatically from GitHub as part of the compilation step.  Assuming you called this file `vue-utility-simple.yaml` from the previous step, you would run:
 
 ```
-esphome run vue-utility-solar.yaml  
+esphome run vue-utility-simple.yaml
 ```
 
 This should build the firmware and flash the device all on the command line.
@@ -153,15 +155,15 @@ This should build the firmware and flash the device all on the command line.
 **-- OR --**
 #### B) For ESPHome Device Builder:
 
-- go to the [ESPHome Device Builder Add-on](https://esphome.io/guides/getting_started_hassio/)
-- click `Open web UI`
-- follow the UI to create a device.
-- paste the YAML code into the editor and customize it as above
-- click `Install`
+- Go to the [ESPHome Device Builder Add-on](https://esphome.io/guides/getting_started_hassio/).
+- Click `Open web UI`.
+- Follow the UI to create a device.
+- Paste the YAML code into the editor and customize it as above.
+- Click `Install`.
 
 This should build the firmware and flash the device all within the web browser:
 - ESPHome uses WebSerial (a browser API supported in Chrome/Edge).  ESPHome compiles the firmware on your HA server, streams it over WebSerial and flashes the Vue on your computer.
-- To be clear: if Home Assistant is running on a Raspberry PI in a closet, you will have the USB to TTL Adapter connected to your computer, not the raspberry PI.
+- To be clear: if Home Assistant is running on a Raspberry Pi in a closet, you will have the USB to TTL Adapter connected to your computer, not the Raspberry Pi.
 
 
 ----

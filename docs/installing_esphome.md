@@ -13,8 +13,8 @@ ESPHome is a **framework and toolchain** for creating custom firmware. This usua
 So when you hear someone say "a device running ESPHome", what they really mean is "a device running firmware built with ESPHome".
 
 There are multiple ways to do this and much of the documentation out there is difficult for new comers.  This document walks you through:
-- the high level of ESPHome
-- the two of the ways to use ESPHome to build and flash the firmware for this project
+- The high level of ESPHome.
+- The two of the ways to use ESPHome to build and flash the firmware for this project.
 
 
 ## Overview
@@ -41,22 +41,22 @@ There is an overwhelming amount of documentation on writing a YAML file.  You do
 #### 1. ESPHome CLI --- [install guide](https://esphome.io/guides/installing_esphome/)
 
 This gives you a CLI (command-line interface) to run ESPHome.  You run this in the terminal of your computer: Windows, Mac or Linux.  It is completely separate from Home Assistant.  It does not run with or on Home Assistant, and does not talk to it in any way.
- - you simply run: `esphome run <yaml_file>`
- - runs on your own computer (Python or Docker).
- - better for developers: quick iteration, local editing of YAML/Python/C++.
- - flexible: you can use local custom code without publishing to GitHub.
- - full control over build logs, debugging, and advanced options.
- - you **can** backup the original firmware with this.
+ - You simply run: `esphome run <yaml_file>`
+ - Runs on your own computer (Python or Docker).
+ - Better for developers: quick iteration, local editing of YAML/Python/C++.
+ - Flexible: you can use local custom code without publishing to GitHub.
+ - Full control over build logs, debugging, and advanced options.
+ - You **can** backup the original firmware with this.
 
 
 #### 2. ESPHome Device Builder --- [install guide](https://esphome.io/guides/getting_started_hassio/#installing-esphome-device-builder)
 
 This is a Home Assistant add-on.  It is basically a UI wrapper for the ESPHome CLI, and runs on the Home Assistant server.  You use the Home Assitant web interface to access it.
- - you use an in-browser editor to paste YAML code
- - runs inside Home Assistant (web UI).
- - better for end users: simpler UI.
- - initial flashing still happens on your PC.  It works using WebSerial (via a browser).
- - you **cannot** use this to backup the original firmware.
+ - You use an in-browser editor to paste YAML code
+ - Runs inside Home Assistant (web UI).
+ - Better for end users: simpler UI.
+ - Initial flashing still happens on your PC.  It works using WebSerial (via a browser).
+ - You **cannot** use this to backup the original firmware.
 
 
 ### What is best for you?

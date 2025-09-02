@@ -1,10 +1,6 @@
 esphome:
   name: emporia-vue-utility
 
-  devices:
-    - id: smart_meter_reader
-      name: "Meter"
-
 esp32:
   board: esp-wrover-kit
   framework:
@@ -22,12 +18,12 @@ logger:
 # Encryption secures it.  Any password will work.  See FAQ.
 api:
   encryption:
-    key: "blah"
+    key: "some_password"
 
 # Secures OTA Updates.  Any password will work.  See FAQ.
 ota:
   platform: esphome
-  password: "blah"
+  password: "some_password"
 
 wifi:
   ssid: !secret wifi_ssid
@@ -38,8 +34,8 @@ web_server:
   port: 80
 # Optionally define a username + password
 #  auth:
-#    username: 'glen'
-#    password: 'vue_password'
+#    username: 'some_username'
+#    password: 'your_password'
 
 # This uart connects to the MGM111
 uart:
@@ -51,20 +47,29 @@ uart:
 sensor:
   - platform: emporia_vue_utility
     uart_id: emporia_uart
+
+    # Enables verbose logging.
     debug: true
-    update_interval: 15s
+
+    # The default update interval is 30s, but you can experiment with how frequent your smart meter
+    # supports providing an updated value.
+    # update_interval: 15s
+
+    # Below is a reasonable setup for someone with solar/batteries, but if you do not have that
+    # then you can remove the `energy_export` sensor and keep either `energy` or `energy_import`.
+    # All of the sensors are optional, so keep the ones you are interested in.
     power:
       name: "Watts"
-      device_id: smart_meter_reader
+    # power_export:
+    #   name: "Watts Returned"
+    # power_import:
+    #   name: "Watts Consumed"
     energy:
       name: "Wh Net"
-      device_id: smart_meter_reader
     energy_export:
       name: "Wh Returned"
-      device_id: smart_meter_reader
     energy_import:
       name: "Wh Consumed"
-      device_id: smart_meter_reader
 
 # This LED is marked D3 on the pcb and is the power led on the case
 status_led:
