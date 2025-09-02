@@ -2,7 +2,7 @@
 
 Prerequisites:
 - You need the [ESPHome CLI](installing_esphome.md) installed.
-- You need the Vue device to be [wired to a USB to TTY adapter](c_wiring_and_usb.md).
+- You need the Vue device to be [wired to a USB to TTY adapter](wiring_and_usb.md).
 
 Reminder: triple check your wiring, making sure you are not connecting +5V to anything other than pin 6.  You can now plug it into your computer and the Vue device should power up and start working as normal.
 
