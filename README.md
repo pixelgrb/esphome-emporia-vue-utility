@@ -214,7 +214,7 @@ You likely can benefit from tweaking the YAML.  We have a dedicated section on [
 
 ## FAQ
 
-Got Questions?  Check out the [Frequently Asked Questions](docs/yaml.md).  Then head to the [Community thread](https://community.home-assistant.io/t/emporia-vue-utility-connect/).
+Got Questions?  Check out the [Frequently Asked Questions](docs/faq.md).  Then head to the [Community thread](https://community.home-assistant.io/t/emporia-vue-utility-connect/).
 
 </br>
 
