@@ -31,5 +31,5 @@ Reminder: if it doesn't work, swap pins 1 and 2.
 **3. If you need to restore:**
 
 ```
-esptool --port <usb_port> --chip esp32 -b 115200 write_flash --flash_freq 80m 0x0 <filename>
+# esptool --port <usb_port> --chip esp32 -b 115200 write_flash --flash_freq 80m 0x0 <filename>
 ```
