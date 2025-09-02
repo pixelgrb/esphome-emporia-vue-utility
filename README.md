@@ -1,4 +1,4 @@
-# ESPHome for Emporia Vue Utility Connect
+# ESPHome Emporia Vue Utility Connect Unofficial Firmware
 
 <img align="right" src="docs/vue_product_700.jpg" height="300" style="margin-right: 20px;" />
 
